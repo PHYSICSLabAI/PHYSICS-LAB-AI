@@ -1,8 +1,20 @@
 import os
-from datetime import datetime
 import math
-
+from datetime import datetime
 from nicegui import app, ui
+
+# Optional: Set your Gemini API key via environment variable: GEMINI_API_KEY
+# If not present, the system seamlessly falls back to the embedded offline physics engine.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+# Initialize Google GenAI Client if API key is provided
+ai_client = None
+if GEMINI_API_KEY:
+    try:
+        from google import genai
+        ai_client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"GenAI Client initialization skipped: {e}")
 
 # =========================================================
 # PHYSICS LAB AI CONFIGURATION
@@ -32,9 +44,14 @@ SAVED_LABS = [
     }
 ]
 
+# Chat History Storage
+chat_history = [
+    ("ai", "Welcome! I am your Advanced Physics AI. Ask me anything about Newton's Laws, Kinematics, Black Holes, Quantum Mechanics, Energy, or Relativity!")
+]
+
 
 # =========================================================
-# TIME GREETING
+# TIME GREETING & OFFLINE PHYSICS ENGINE
 # =========================================================
 
 def get_greeting():
@@ -48,18 +65,49 @@ def get_greeting():
     else:
         return "Good night"
 
+def get_offline_physics_response(query: str) -> str:
+    """Fallback physics engine when GEMINI_API_KEY is not configured."""
+    q = query.lower()
+
+    if any(k in q for k in ['newton', "law of motion", 'inertia', 'f=ma']):
+        if 'first' in q or 'inertia' in q:
+            return "📌 Newton's First Law (Law of Inertia):\nAn object remains at rest or in uniform linear motion unless acted upon by a net external force.\n\nExample: A book on a table stays put until pushed."
+        if 'second' in q or 'f=ma' in q or 'force' in q:
+            return "📌 Newton's Second Law:\nAcceleration is directly proportional to net force and inversely proportional to mass.\nFormula: F = m × a (Force = Mass × Acceleration)."
+        if 'third' in q or 'action' in q or 'reaction' in q:
+            return "📌 Newton's Third Law:\nFor every action force, there is an equal and opposite reaction force.\nFormula: F_A = -F_B."
+        return "📌 Newton's 3 Laws of Motion:\n1. Inertia: Objects maintain state unless acted on by external force.\n2. Acceleration: F = m × a.\n3. Action-Reaction: Equal & opposite force pairs."
+
+    if any(k in q for k in ['kinematic', 'velocity', 'acceleration', 'displacement', 'projectile']):
+        return "🚀 Kinematics Equations (Uniform Acceleration):\n1. v = u + at\n2. s = ut + ½at²\n3. v² = u² + 2as\n4. s = ½(u + v)t\n\nWhere:\n• u = Initial Velocity\n• v = Final Velocity\n• a = Acceleration\n• t = Time\n• s = Displacement"
+
+    if any(k in q for k in ['black hole', 'event horizon', 'singularity', 'hawking', 'schwarzschild']):
+        return "🌌 Black Hole Astrophysics:\n• Event Horizon: Boundary where escape velocity exceeds light speed (c).\n• Schwarzschild Radius: R_s = 2GM / c².\n• Singularity: Region of infinite density at the center.\n• Hawking Radiation: Quantum fluctuations causing black hole evaporation over cosmological timescales."
+
+    if any(k in q for k in ['quantum', 'schrodinger', 'uncertainty', 'tunneling', 'superposition', 'photon']):
+        return "⚛️ Quantum Mechanics Core Concepts:\n1. Wave-Particle Duality: Light and matter exhibit both wave and particle characteristics (E = hf, λ = h/p).\n2. Heisenberg Uncertainty Principle: Δx · Δp ≥ ℏ / 2.\n3. Schrödinger Equation: iℏ ∂Ψ/∂t = ĤΨ.\n4. Quantum Superposition: Systems exist in linear combinations of states prior to measurement.\n5. Quantum Tunneling: Particles penetrating energy barriers exceeding their kinetic energy."
+
+    if any(k in q for k in ['relativity', 'einstein', 'e=mc', 'speed of light']):
+        return "⚡ Relativity Theory:\n• Special Relativity: The speed of light c is invariant in all inertial frames. E = mc² represents mass-energy equivalence.\n• General Relativity: Gravity is the curvature of spacetime caused by mass and energy distribution."
+
+    if any(k in q for k in ['thermodynamics', 'entropy', 'heat', 'temperature']):
+        return "🔥 Laws of Thermodynamics:\n• 0th Law: Thermal equilibrium defines temperature.\n• 1st Law: Energy conservation (ΔU = Q - W).\n• 2nd Law: Entropy of an isolated system always increases (ΔS ≥ 0).\n• 3rd Law: Absolute zero (0 K) cannot be reached in finite steps."
+
+    if any(k in q for k in ['energy', 'work', 'power']):
+        return "💡 Work & Energy:\n• Work: W = F · d · cos(θ) [Joules]\n• Kinetic Energy: KE = ½mv²\n• Potential Energy: PE = mgh\n• Power: P = W / t [Watts]"
+
+    return f"🌌 Physics Query Received for '{query}':\nFundamental physical laws describe phenomena across all scales—from quantum particles to cosmic black holes. Please ensure SI unit consistency (m, kg, s) during calculations!"
+
 
 # =========================================================
-# GLOBAL CSS & HTML HEAD INJECTIONS
+# GLOBAL HEAD & STYLES INJECTION
 # =========================================================
 
 ui.add_head_html("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;700&display=swap');
 
-    * {
-        box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html, body {
         margin: 0;
@@ -93,48 +141,39 @@ ui.add_head_html("""
         background-color: #020617 !important;
         color: #ffffff !important;
     }
-
     body.body--dark::before { opacity: 0.35; }
-
     body.body--dark::after {
         background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 40%),
                     radial-gradient(circle at bottom left, rgba(14, 165, 233, 0.10), transparent 40%),
                     rgba(2, 6, 23, 0.75);
     }
-
     body.body--dark .glass-card {
         background: rgba(15, 23, 42, 0.82) !important;
         backdrop-filter: blur(16px);
         border: 1px solid rgba(148, 163, 184, 0.18);
         color: #ffffff !important;
     }
-
     body.body--dark .topbar {
         background: rgba(2, 6, 23, 0.88) !important;
         backdrop-filter: blur(16px);
         border-bottom: 1px solid rgba(148, 163, 184, 0.12);
     }
-
     body.body--dark .physics-sidebar {
         background: rgba(2, 6, 23, 0.95) !important;
         backdrop-filter: blur(20px);
         border-right: 1px solid rgba(148, 163, 184, 0.15);
     }
-
     body.body--dark .text-muted { color: #94a3b8 !important; }
 
     body.body--light {
         background-color: #f8fafc !important;
         color: #0f172a !important;
     }
-
     body.body--light::before { opacity: 0.15; }
-
     body.body--light::after {
         background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 40%),
                     rgba(248, 250, 252, 0.85);
     }
-
     body.body--light .glass-card {
         background: rgba(255, 255, 255, 0.88) !important;
         backdrop-filter: blur(16px);
@@ -142,19 +181,16 @@ ui.add_head_html("""
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         color: #0f172a !important;
     }
-
     body.body--light .topbar {
         background: rgba(255, 255, 255, 0.90) !important;
         backdrop-filter: blur(16px);
         border-bottom: 1px solid rgba(226, 232, 240, 0.8);
     }
-
     body.body--light .physics-sidebar {
         background: rgba(255, 255, 255, 0.95) !important;
         backdrop-filter: blur(20px);
         border-right: 1px solid rgba(226, 232, 240, 0.8);
     }
-
     body.body--light .text-muted { color: #64748b !important; }
 
     .physics-main { max-width: 1400px; margin: auto; }
@@ -162,7 +198,6 @@ ui.add_head_html("""
     .action-card {
         transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
-
     .action-card:hover {
         transform: translateY(-2px);
         border-color: rgba(59, 130, 246, 0.5) !important;
@@ -182,7 +217,6 @@ ui.add_head_html("""
         margin-bottom: 2px;
         transition: background 0.2s ease, transform 0.2s ease;
     }
-
     .nav-button:hover { transform: translateX(3px); }
 
     .app-logo-img {
@@ -200,7 +234,7 @@ ui.add_head_html("""
         border-radius: 12px;
     }
 
-    /* --- WIDER & COOLER LOGO SPLASH ANIMATION STYLES --- */
+    /* LOGO SPLASH ANIMATION */
     #splash-overlay {
         position: fixed;
         inset: 0;
@@ -229,7 +263,6 @@ ui.add_head_html("""
         gap: 28px;
     }
 
-    /* Glowing Blue Orb with Energy Pulse */
     .blue-orb {
         width: 70px;
         height: 70px;
@@ -241,13 +274,12 @@ ui.add_head_html("""
         animation: orbAppear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards, orbPulse 2s infinite ease-in-out 1.2s;
     }
 
-    /* PHYSICS Word: Wider Letter Spacing & Glowing Effects */
     .logo-physics {
         display: flex;
         font-family: 'Orbitron', sans-serif;
         font-size: 4rem;
         font-weight: 900;
-        letter-spacing: 16px; /* WIDER SPACING */
+        letter-spacing: 16px;
         color: #ffffff;
         text-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
     }
@@ -260,7 +292,6 @@ ui.add_head_html("""
         animation: coolLetterReveal 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
-    /* Letter Delay Timings */
     .logo-physics span:nth-child(1) { animation-delay: 0.9s; }
     .logo-physics span:nth-child(2) { animation-delay: 1.05s; }
     .logo-physics span:nth-child(3) { animation-delay: 1.2s; }
@@ -269,7 +300,6 @@ ui.add_head_html("""
     .logo-physics span:nth-child(6) { animation-delay: 1.65s; }
     .logo-physics span:nth-child(7) { animation-delay: 1.8s; }
 
-    /* Lab AI Subtitle */
     .logo-lab-ai {
         font-family: 'Rajdhani', sans-serif;
         font-size: 2.2rem;
@@ -284,168 +314,30 @@ ui.add_head_html("""
         animation: labAiReveal 0.7s ease-out 2.3s forwards;
     }
 
-    /* Keyframe Animations */
     @keyframes orbAppear {
         0% { opacity: 0; transform: scale(0) rotate(-45deg); }
         100% { opacity: 1; transform: scale(1) rotate(0deg); }
     }
-
     @keyframes orbPulse {
         0%, 100% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(29, 78, 216, 0.6); }
         50% { box-shadow: 0 0 45px rgba(56, 189, 248, 1), 0 0 80px rgba(29, 78, 216, 0.8); }
     }
-
     @keyframes coolLetterReveal {
         0% { opacity: 0; transform: translateY(-30px) scale(0.6) rotate(-10deg); filter: blur(8px); }
         100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); filter: blur(0); }
     }
-
     @keyframes labAiReveal {
         0% { opacity: 0; transform: translateY(15px); filter: blur(4px); }
         100% { opacity: 1; transform: translateY(0); filter: blur(0); }
     }
-
     @keyframes fadeOutSplash {
         0% { opacity: 1; visibility: visible; }
         100% { opacity: 0; visibility: hidden; }
     }
-
-    /* --- FLOATING AI WIDGET STYLES --- */
-    #ai-toggle-btn {
-        position: fixed;
-        bottom: 25px;
-        right: 25px;
-        background: linear-gradient(135deg, #2563eb, #7c3aed);
-        color: white;
-        border: none;
-        border-radius: 50px;
-        padding: 12px 20px;
-        font-size: 0.9rem;
-        font-weight: bold;
-        cursor: pointer;
-        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
-        z-index: 9000;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    #ai-toggle-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 25px rgba(37, 99, 235, 0.6);
-    }
-
-    #ai-chat-box {
-        position: fixed;
-        bottom: 85px;
-        right: 25px;
-        width: 390px;
-        height: 520px;
-        background: #0f172a;
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-        display: none;
-        flex-direction: column;
-        z-index: 9000;
-        overflow: hidden;
-        backdrop-filter: blur(20px);
-    }
-
-    .chat-header {
-        background: #1e293b;
-        padding: 14px 18px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-    }
-
-    .chat-header h3 {
-        margin: 0;
-        font-size: 0.95rem;
-        color: #f8fafc;
-        font-weight: bold;
-    }
-
-    .chat-close-btn {
-        background: none;
-        border: none;
-        color: #94a3b8;
-        font-size: 1.3rem;
-        cursor: pointer;
-        line-height: 1;
-    }
-
-    .chat-messages {
-        flex: 1;
-        padding: 14px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .chat-msg {
-        max-width: 85%;
-        padding: 10px 14px;
-        border-radius: 12px;
-        font-size: 0.88rem;
-        line-height: 1.5;
-        white-space: pre-wrap;
-    }
-
-    .chat-msg-user {
-        align-self: flex-end;
-        background: #2563eb;
-        color: #ffffff;
-        border-bottom-right-radius: 2px;
-    }
-
-    .chat-msg-ai {
-        align-self: flex-start;
-        background: #1e293b;
-        color: #cbd5e1;
-        border: 1px solid rgba(148, 163, 184, 0.15);
-        border-bottom-left-radius: 2px;
-    }
-
-    .chat-input-area {
-        display: flex;
-        padding: 12px;
-        border-top: 1px solid rgba(148, 163, 184, 0.15);
-        background: #090d16;
-        gap: 8px;
-    }
-
-    .chat-input-area input {
-        flex: 1;
-        background: #1e293b;
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        color: #ffffff;
-        padding: 9px 14px;
-        border-radius: 8px;
-        outline: none;
-        font-size: 0.88rem;
-    }
-
-    .chat-input-area button {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 9px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: bold;
-        font-size: 0.85rem;
-    }
 </style>
 """)
 
-# Inject Custom Logo Splash Overlay HTML & Comprehensive Physics Assistant JavaScript Engine
 ui.add_body_html("""
-<!-- 1. ENHANCED WIDER LOGO ANIMATION OVERLAY -->
 <div id="splash-overlay">
   <div class="logo-frame">
     <div class="logo-top-row">
@@ -457,119 +349,11 @@ ui.add_body_html("""
     <div class="logo-lab-ai">Lab AI</div>
   </div>
 </div>
-
-<!-- 2. FLOATING AI ASSISTANT WIDGET -->
-<button id="ai-toggle-btn" onclick="toggleAIChat()">🤖 Physics AI Assistant</button>
-
-<div id="ai-chat-box">
-  <div class="chat-header">
-    <h3>⚡ Advanced Physics AI Engine</h3>
-    <button class="chat-close-btn" onclick="toggleAIChat()">×</button>
-  </div>
-  <div class="chat-messages" id="chatMessages">
-    <div class="chat-msg chat-msg-ai">Welcome! I am your Advanced Physics AI. Ask me anything about Newton's Laws, Kinematics, Black Holes, Quantum Mechanics, Energy, Relativity, or Electromagnetism!</div>
-  </div>
-  <div class="chat-input-area">
-    <input type="text" id="userInput" placeholder="Ask Newton's laws, Black holes, Quantum..." onkeydown="if(event.key==='Enter') sendAIMessage()">
-    <button onclick="sendAIMessage()">Send</button>
-  </div>
-</div>
-
-<script>
-function toggleAIChat() {
-  const box = document.getElementById('ai-chat-box');
-  box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
-}
-
-function sendAIMessage() {
-  const input = document.getElementById('userInput');
-  const text = input.value.trim();
-  if (!text) return;
-
-  appendMessage(text, 'user');
-  input.value = '';
-
-  setTimeout(() => {
-    const response = getAIPhysicsResponse(text);
-    appendMessage(response, 'ai');
-  }, 350);
-}
-
-function appendMessage(text, sender) {
-  const chat = document.getElementById('chatMessages');
-  const msgDiv = document.createElement('div');
-  msgDiv.className = `chat-msg chat-msg-${sender}`;
-  msgDiv.textContent = text;
-  chat.appendChild(msgDiv);
-  chat.scrollTop = chat.scrollHeight;
-}
-
-// COMPREHENSIVE PHYSICS KNOWLEDGE ENGINE
-function getAIPhysicsResponse(query) {
-  const q = query.toLowerCase();
-
-  // --- NEWTON'S LAWS OF MOTION ---
-  if (q.includes('newton') || q.includes("law of motion") || q.includes('inertia') || q.includes('f=ma')) {
-    if (q.includes('first') || q.includes('inertia')) {
-      return "📌 Newton's First Law (Law of Inertia):\nAn object remains at rest or in uniform linear motion unless acted upon by a net external force.\n\nExample: A book on a table stays put until pushed.";
-    }
-    if (q.includes('second') || q.includes('f=ma') || q.includes('force')) {
-      return "📌 Newton's Second Law:\nAcceleration is directly proportional to net force and inversely proportional to mass.\nFormula: F = m × a (Force = Mass × Acceleration).\n\nExample: Pushing a lighter box produces greater acceleration than a heavier box with equal force.";
-    }
-    if (q.includes('third') || q.includes('action') || q.includes('reaction')) {
-      return "📌 Newton's Third Law:\nFor every action force, there is an equal and opposite reaction force.\nFormula: F_A = -F_B.\n\nExample: Rocket propulsion—burning gases push downward while pushing the rocket upward.";
-    }
-    return "📌 Newton's 3 Laws of Motion Summary:\n1. Inertia: Objects keep doing what they are doing unless forced.\n2. Acceleration: F = m × a.\n3. Action-Reaction: Equal & opposite forces on interaction pairs.";
-  }
-
-  // --- KINEMATICS ---
-  if (q.includes('kinematic') || q.includes('velocity') || q.includes('acceleration') || q.includes('displacement') || q.includes('projectile')) {
-    return "🚀 Kinematics Equations (Uniform Acceleration):\n1. v = u + at\n2. s = ut + ½at²\n3. v² = u² + 2as\n4. s = ½(u + v)t\n\nWhere:\n• u = Initial Velocity\n• v = Final Velocity\n• a = Acceleration\n• t = Time\n• s = Displacement";
-  }
-
-  // --- BLACK HOLES & ASTROPHYSICS ---
-  if (q.includes('black hole') || q.includes('event horizon') || q.includes('singularity') || q.includes('hawking') || q.includes('schwarzschild')) {
-    return "🌌 Black Holes Physics:\n• Event Horizon: The point of no return where escape velocity exceeds light speed (c).\n• Schwarzschild Radius: R_s = 2GM / c².\n• Gravitational Singularity: Infinite density center where space-time curvature approaches infinity.\n• Hawking Radiation: Quantum fluctuations near the horizon causing black holes to slowly evaporate over time.\n• Gravitational Time Dilation: Clocks run slower in stronger gravitational fields near black holes.";
-  }
-
-  // --- QUANTUM MECHANICS ---
-  if (q.includes('quantum') || q.includes('schrodinger') || q.includes('uncertainty') || q.includes('tunneling') || q.includes('superposition') || q.includes('photon') || q.includes('planck')) {
-    return "⚛️ Quantum Mechanics Core Concepts:\n1. Wave-Particle Duality: Light and matter exhibit both wave-like and particle-like properties (E = hf, λ = h/p).\n2. Heisenberg Uncertainty Principle: Δx · Δp ≥ ℏ / 2 (Position & momentum cannot be simultaneously measured with absolute precision).\n3. Schrödinger Equation: iℏ ∂Ψ/∂t = ĤΨ (Describes how the quantum state / wave function evolves).\n4. Quantum Superposition: A system exists in a linear combination of states until measured.\n5. Quantum Tunneling: Particles pass through potential barriers exceeding their kinetic energy.";
-  }
-
-  // --- RELATIVITY ---
-  if (q.includes('relativity') || q.includes('einstein') || q.includes('e=mc') || q.includes('speed of light')) {
-    return "⚡ Relativity Theory:\n• Special Relativity: Speed of light c is invariant in all inertial frames. E = mc² shows mass-energy equivalence. Time dilates and length contracts at relativistic speeds.\n• General Relativity: Gravity is not a force, but the curvature of space-time caused by mass and energy.";
-  }
-
-  // --- THERMODYNAMICS ---
-  if (q.includes('thermodynamics') || q.includes('entropy') || q.includes('heat') || q.includes('temperature')) {
-    return "🔥 Laws of Thermodynamics:\n0th Law: Thermal equilibrium defines temperature.\n1st Law: Energy conservation (ΔU = Q - W).\n2nd Law: Entropy of an isolated system always increases (S ≥ 0).\n3rd Law: Absolute zero (0 K) cannot be reached in a finite number of steps.";
-  }
-
-  // --- ELECTROMAGNETISM & ELECTRICITY ---
-  if (q.includes('electricity') || q.includes('ohm') || q.includes('magnetic') || q.includes('charge') || q.includes('maxwell')) {
-    return "⚡ Electromagnetism:\n• Ohm's Law: V = I × R\n• Coulomb's Law: F = k(q1·q2)/r²\n• Maxwell's Equations: Describe electric and magnetic fields, showing that light is an electromagnetic wave moving at c ≈ 3×10⁸ m/s.";
-  }
-
-  // --- GENERAL ENERGY / WORK ---
-  if (q.includes('energy') || q.includes('work') || q.includes('power')) {
-    return "💡 Energy & Work:\n• Work: W = F · d · cos(θ) [Joules]\n• Kinetic Energy: KE = ½mv²\n• Potential Energy: PE = mgh\n• Power: P = W / t [Watts]\n• Conservation Law: Energy cannot be created or destroyed, only transformed!";
-  }
-
-  // GREETINGS & DEFAULT FALLBACK
-  if (q.includes('hi') || q.includes('hello') || q.includes('hey')) {
-    return "Hello! I am your Advanced Physics AI Assistant. Ask me anything about Classical Mechanics, Kinematics, Quantum Physics, or Astrophysics!";
-  }
-
-  return `🌌 Knowledge query received for "${query}":\nIn physics, fundamental laws govern everything from quantum subatomic particles to cosmic black holes. Check unit consistency in SI standards (meters, kilograms, seconds) when applying formulas!`;
-}
-</script>
 """)
 
 
 # =========================================================
-# MAIN CONTAINER & ROUTING
+# MAIN CONTENT CONTAINER & ROUTING
 # =========================================================
 
 content = ui.column().classes("physics-main w-full min-h-screen px-4 md:px-8 py-8")
@@ -599,7 +383,75 @@ def page_title(title, subtitle=None):
 
 
 # =========================================================
-# HOME PAGE
+# NATIVE FUNCTIONAL AI CHAT DRAWER / WIDGET
+# =========================================================
+
+ai_drawer = ui.right_drawer(value=False).props("bordered width=400").classes("bg-slate-900 text-white p-4")
+
+with ai_drawer:
+    with ui.row().classes("w-full items-center justify-between mb-4 border-b border-slate-700 pb-2"):
+        with ui.row().classes("items-center gap-2"):
+            ui.icon("auto_awesome").classes("text-blue-400 text-xl")
+            ui.label("Physics AI Assistant").classes("font-bold text-lg")
+        ui.button(icon="close", on_click=ai_drawer.toggle).props("flat round dense text-color=grey")
+
+    chat_scroll = ui.column().classes("w-full h-[70vh] overflow-y-auto gap-3 pr-2")
+
+    def render_chat_messages():
+        chat_scroll.clear()
+        with chat_scroll:
+            for sender, text in chat_history:
+                if sender == "user":
+                    with ui.row().classes("w-full justify-end"):
+                        ui.label(text).classes("bg-blue-600 text-white p-3 rounded-xl max-w-[85%] text-sm whitespace-pre-wrap")
+                else:
+                    with ui.row().classes("w-full justify-start"):
+                        ui.label(text).classes("bg-slate-800 text-slate-200 border border-slate-700 p-3 rounded-xl max-w-[85%] text-sm whitespace-pre-wrap")
+
+    render_chat_messages()
+
+    async def send_ai_query(user_text_input):
+        text = user_text_input.value.strip()
+        if not text:
+            return
+
+        chat_history.append(("user", text))
+        user_text_input.value = ""
+        render_chat_messages()
+
+        # Generate response using Gemini API if available, else offline engine
+        if ai_client:
+            try:
+                prompt = (
+                    "You are an expert Physics AI tutor. Provide precise, well-structured, "
+                    "and clear explanations covering laws of motion, kinematics, black holes, "
+                    "quantum mechanics, relativity, thermodynamics, or electromagnetism as requested.\n\n"
+                    f"User question: {text}"
+                )
+                response = ai_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                reply = response.text if response.text else "No response received."
+            except Exception as ex:
+                reply = f"⚠️ Gemini API Call Failed ({ex}). Using offline engine:\n\n" + get_offline_physics_response(text)
+        else:
+            reply = get_offline_physics_response(text)
+
+        chat_history.append(("ai", reply))
+        render_chat_messages()
+
+    with ui.row().classes("w-full items-center gap-2 mt-4"):
+        user_input = ui.input(placeholder="Ask Newton's laws, Quantum, Black holes...").props("outlined dense color=blue").classes("flex-1 text-sm bg-slate-800 text-white")
+        user_input.on("keydown.enter", lambda: send_ai_query(user_input))
+        ui.button(icon="send", on_click=lambda: send_ai_query(user_input)).props("color=primary dense")
+
+# Floating AI Toggle Button
+ui.button("🤖 Physics AI Assistant", on_click=ai_drawer.toggle).props("rounded color=primary icon=auto_awesome").classes("fixed bottom-6 right-6 z-50 shadow-2xl font-bold px-4 py-2")
+
+
+# =========================================================
+# HOME PAGE VIEW
 # =========================================================
 
 def show_home():
@@ -630,7 +482,7 @@ def show_home():
                 ui.label("Saved Labs").classes("text-xl font-semibold mt-4")
                 ui.label("Access and manage saved experiment records.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_ai_search)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", ai_drawer.toggle):
                 ui.icon("auto_awesome").classes("text-4xl text-amber-500")
                 ui.label("AI Physics Assistant").classes("text-xl font-semibold mt-4")
                 ui.label("Solve complex physics problems and generate custom scenarios.").classes("text-muted mt-1 text-sm")
@@ -642,12 +494,12 @@ def show_home():
 
 
 # =========================================================
-# PHYSICS LAB AI SIMULATIONS LIST VIEW
+# SIMULATIONS LIST & 2D RUNNERS
 # =========================================================
 
 def show_simulations():
     with content:
-        page_title("Physics Lab AI Simulations", "Select a physics topic below and click 'Run Simulation' to start real-time interactive 2D animations.")
+        page_title("Physics Lab AI Simulations", "Select a topic to start interactive 2D physics models.")
 
         simulations_list = [
             {
@@ -693,19 +545,13 @@ def show_simulations():
                             with ui.column().classes("gap-1"):
                                 ui.label(sim["title"]).classes("text-xl font-bold")
                                 ui.label(sim["description"]).classes("text-muted text-sm")
-                        
                         ui.button("▶ Run Simulation", on_click=sim["action"]).props("color=primary rounded").classes("px-6 py-2 font-bold shadow-md")
 
 
-# =========================================================
-# 2D ANIMATED SIMULATION RUNNERS
-# =========================================================
-
-# --- 1. PROJECTILE MOTION RUNNER ---
 def run_projectile_simulation():
     with content:
         with ui.row().classes("items-center justify-between w-full mb-4"):
-            page_title("Projectile Motion 2D Simulation", "Adjust values, toggle vectors, and click Play to start motion.")
+            page_title("Projectile Motion 2D Simulation", "Adjust parameters, toggle vectors, and execute trajectory analysis.")
             ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
 
         err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
@@ -728,7 +574,6 @@ def run_projectile_simulation():
                 btn_reset = ui.button("↺ Reset", props="color=negative")
 
         metrics_label = ui.label("Ready to launch.").classes("text-blue-400 font-semibold mb-2 text-sm")
-
         canvas_id = "projCanvas"
         ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
 
@@ -737,7 +582,6 @@ def run_projectile_simulation():
             const canvas = document.getElementById('{canvas_id}');
             if(!canvas) return;
             const ctx = canvas.getContext('2d');
-            
             let animId = null, running = false, t = 0;
             const dt = 0.03;
 
@@ -867,11 +711,10 @@ def run_projectile_simulation():
         btn_reset.on("click", lambda: ui.run_javascript("window.resetProj();"))
 
 
-# --- 2. PENDULUM SIMULATION RUNNER ---
 def run_pendulum_simulation():
     with content:
         with ui.row().classes("items-center justify-between w-full mb-4"):
-            page_title("Simple Pendulum 2D Simulation", "Adjust string length and angle to observe harmonic motion.")
+            page_title("Simple Pendulum 2D Simulation", "Adjust parameters to observe simple harmonic motion.")
             ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
 
         err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
@@ -995,7 +838,6 @@ def run_pendulum_simulation():
         btn_reset.on("click", lambda: ui.run_javascript("window.resetPend();"))
 
 
-# --- 3. SPRING-MASS SIMULATION RUNNER ---
 def run_spring_simulation():
     with content:
         with ui.row().classes("items-center justify-between w-full mb-4"):
@@ -1094,7 +936,6 @@ def run_spring_simulation():
         btn_reset.on("click", lambda: ui.run_javascript("window.resetSpring();"))
 
 
-# --- 4. GRAVITY SIMULATION RUNNER ---
 def run_gravity_simulation():
     with content:
         with ui.row().classes("items-center justify-between w-full mb-4"):
@@ -1190,7 +1031,7 @@ def run_gravity_simulation():
 
 
 # =========================================================
-# EXPANDED PHYSICS CALCULATOR SUITE WITH VALIDATION
+# PHYSICS CALCULATOR SUITE
 # =========================================================
 
 def show_physics_calculator():
@@ -1206,11 +1047,9 @@ def show_physics_calculator():
                 p_tab = ui.tab("Momentum")
                 ohm_tab = ui.tab("Ohm's Law")
                 wave_tab = ui.tab("Wave Speed")
-                press_tab = ui.tab("Pressure")
 
             with ui.tab_panels(calc_tabs, value=ke_tab).classes("w-full bg-transparent mt-4"):
 
-                # Kinetic Energy
                 with ui.tab_panel(ke_tab):
                     ui.label("Formula: KE = ½ × m × v²").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
@@ -1228,7 +1067,6 @@ def show_physics_calculator():
                             ke_out.classes(replace="text-emerald-400")
                     ui.button("Calculate", icon="bolt", on_click=c_ke).props("color=primary").classes("mt-2")
 
-                # Potential Energy
                 with ui.tab_panel(pe_tab):
                     ui.label("Formula: PE = m × g × h").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4"):
@@ -1247,7 +1085,6 @@ def show_physics_calculator():
                             pe_out.classes(replace="text-emerald-400")
                     ui.button("Calculate", icon="bolt", on_click=c_pe).props("color=primary").classes("mt-2")
 
-                # Acceleration
                 with ui.tab_panel(acc_tab):
                     ui.label("Formula: a = (v - u) / t").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4"):
@@ -1266,7 +1103,6 @@ def show_physics_calculator():
                             acc_out.classes(replace="text-blue-400")
                     ui.button("Calculate", icon="speed", on_click=c_acc).props("color=primary").classes("mt-2")
 
-                # Force & Work
                 with ui.tab_panel(force_tab):
                     ui.label("Formulas: Force F = m × a | Work W = F × d").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4"):
@@ -1287,7 +1123,6 @@ def show_physics_calculator():
                             fw_out.classes(replace="text-cyan-400")
                     ui.button("Calculate", icon="fitness_center", on_click=c_fw).props("color=primary").classes("mt-2")
 
-                # Momentum
                 with ui.tab_panel(p_tab):
                     ui.label("Formula: p = m × v").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
@@ -1305,7 +1140,6 @@ def show_physics_calculator():
                             p_out.classes(replace="text-purple-400")
                     ui.button("Calculate", icon="trending_up", on_click=c_p).props("color=primary").classes("mt-2")
 
-                # Ohm's Law
                 with ui.tab_panel(ohm_tab):
                     ui.label("Formula: V = I × R").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
@@ -1323,7 +1157,6 @@ def show_physics_calculator():
                             ohm_out.classes(replace="text-amber-400")
                     ui.button("Calculate", icon="power", on_click=c_ohm).props("color=primary").classes("mt-2")
 
-                # Wave Speed
                 with ui.tab_panel(wave_tab):
                     ui.label("Formula: v = f × λ").classes("text-sm text-muted mb-4")
                     with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
@@ -1340,24 +1173,6 @@ def show_physics_calculator():
                             wave_out.text = f"Wave Speed v: {(f * l):.2f} m/s"
                             wave_out.classes(replace="text-pink-400")
                     ui.button("Calculate", icon="waves", on_click=c_wave).props("color=primary").classes("mt-2")
-
-                # Pressure
-                with ui.tab_panel(press_tab):
-                    ui.label("Formula: P = F / A").classes("text-sm text-muted mb-4")
-                    with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
-                        pr_f = ui.number(label="Force F (N)", value=500.0).props("outlined")
-                        pr_a = ui.number(label="Area A (m²)", value=2.0).props("outlined")
-                    press_out = ui.label("Pressure P: 250.00 Pascals (Pa)").classes("text-xl font-bold text-indigo-400 mt-4")
-
-                    def c_press():
-                        f, a = pr_f.value or 0, pr_a.value or 0
-                        if a <= 0:
-                            press_out.text = "⚠️ Error: Area must be strictly greater than 0!"
-                            press_out.classes(replace="text-red-400")
-                        else:
-                            press_out.text = f"Pressure P: {(f / a):.2f} Pascals (Pa)"
-                            press_out.classes(replace="text-indigo-400")
-                    ui.button("Calculate", icon="compress", on_click=c_press).props("color=primary").classes("mt-2")
 
 
 # =========================================================
@@ -1415,10 +1230,6 @@ def show_saved_labs():
                         ui.label(f"Observations: {lab['notes']}").classes("text-sm mt-3")
 
 
-# =========================================================
-# OTHER PAGES
-# =========================================================
-
 def show_calculator():
     with content:
         page_title("Standard Calculator", "Quick mathematical computations.")
@@ -1440,15 +1251,6 @@ def show_calculator():
                     ui.button("C", on_click=clear_calc).props("color=negative").classes("flex-1")
                     ui.button("=", on_click=compute).props("color=primary").classes("flex-1")
 
-def show_ai_search():
-    with content:
-        page_title("AI Physics Assistant", "AI-driven physics scenario generator and concept solver.")
-        with ui.card().classes("glass-card w-full p-6 mt-6"):
-            ui.textarea(placeholder="Ask any physics question or request a custom scenario simulation...").props("outlined").classes("w-full")
-            ui.button("Ask Assistant", icon="auto_awesome").props("color=primary").classes("mt-4").on(
-                "click", lambda: ui.notify("AI response processing...", type="info")
-            )
-
 def show_settings():
     with content:
         page_title("Settings", "Customise interface preferences.")
@@ -1457,7 +1259,7 @@ def show_settings():
 
 
 # =========================================================
-# LAYOUT COMPONENTS
+# LAYOUT NAVIGATION DRAWER & TOPBAR
 # =========================================================
 
 drawer = ui.left_drawer(value=True).props("swipeable").classes("physics-sidebar w-64")
@@ -1484,7 +1286,7 @@ with drawer:
         ui.button("Physics Calculator", icon="functions", on_click=lambda: navigate_to(show_physics_calculator)).props("flat").classes("nav-button")
         ui.button("Calculator", icon="calculate", on_click=lambda: navigate_to(show_calculator)).props("flat").classes("nav-button")
         ui.button("Saved Labs", icon="folder", on_click=lambda: navigate_to(show_saved_labs)).props("flat").classes("nav-button")
-        ui.button("AI Assistant", icon="search", on_click=lambda: navigate_to(show_ai_search)).props("flat").classes("nav-button")
+        ui.button("AI Assistant", icon="auto_awesome", on_click=ai_drawer.toggle).props("flat").classes("nav-button")
 
         ui.separator().classes("opacity-10 my-3")
         ui.button("Settings", icon="settings", on_click=lambda: navigate_to(show_settings)).props("flat").classes("nav-button")
