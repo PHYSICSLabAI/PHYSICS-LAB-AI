@@ -234,7 +234,7 @@ ui.add_head_html("""
         border-radius: 12px;
     }
 
-    /* LOGO SPLASH ANIMATION */
+    /* RESPONSIVE OPTIMIZED LOGO SPLASH ANIMATION */
     #splash-overlay {
         position: fixed;
         inset: 0;
@@ -254,21 +254,22 @@ ui.add_head_html("""
         flex-direction: column;
         align-items: flex-start;
         justify-content: center;
-        padding: 20px;
+        padding: 10px;
+        max-width: 90vw;
     }
 
     .logo-top-row {
         display: flex;
         align-items: center;
-        gap: 28px;
+        gap: clamp(10px, 3vw, 20px);
     }
 
     .blue-orb {
-        width: 70px;
-        height: 70px;
+        width: clamp(36px, 8vw, 52px);
+        height: clamp(36px, 8vw, 52px);
         border-radius: 50%;
         background: radial-gradient(circle at 35% 35%, #ffffff 0%, #38bdf8 35%, #1d4ed8 75%, #030712 100%);
-        box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(29, 78, 216, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.9), 0 0 40px rgba(29, 78, 216, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.8);
         opacity: 0;
         transform: scale(0) rotate(-45deg);
         animation: orbAppear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards, orbPulse 2s infinite ease-in-out 1.2s;
@@ -277,11 +278,11 @@ ui.add_head_html("""
     .logo-physics {
         display: flex;
         font-family: 'Orbitron', sans-serif;
-        font-size: 4rem;
+        font-size: clamp(1.8rem, 6.5vw, 2.8rem);
         font-weight: 900;
-        letter-spacing: 16px;
+        letter-spacing: clamp(4px, 1.8vw, 10px);
         color: #ffffff;
-        text-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
+        text-shadow: 0 0 15px rgba(56, 189, 248, 0.5), 0 0 30px rgba(59, 130, 246, 0.3);
     }
 
     .logo-physics span {
@@ -302,12 +303,12 @@ ui.add_head_html("""
 
     .logo-lab-ai {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 2.2rem;
+        font-size: clamp(1.2rem, 4vw, 1.7rem);
         font-weight: 700;
-        letter-spacing: 12px;
+        letter-spacing: clamp(4px, 1.5vw, 8px);
         color: #38bdf8;
-        margin-left: 100px;
-        margin-top: -8px;
+        margin-left: clamp(46px, 11vw, 72px);
+        margin-top: -4px;
         opacity: 0;
         transform: translateY(15px);
         text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
@@ -319,8 +320,8 @@ ui.add_head_html("""
         100% { opacity: 1; transform: scale(1) rotate(0deg); }
     }
     @keyframes orbPulse {
-        0%, 100% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(29, 78, 216, 0.6); }
-        50% { box-shadow: 0 0 45px rgba(56, 189, 248, 1), 0 0 80px rgba(29, 78, 216, 0.8); }
+        0%, 100% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.9), 0 0 40px rgba(29, 78, 216, 0.6); }
+        50% { box-shadow: 0 0 30px rgba(56, 189, 248, 1), 0 0 55px rgba(29, 78, 216, 0.8); }
     }
     @keyframes coolLetterReveal {
         0% { opacity: 0; transform: translateY(-30px) scale(0.6) rotate(-10deg); filter: blur(8px); }
