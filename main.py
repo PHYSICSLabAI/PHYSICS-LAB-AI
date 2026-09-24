@@ -200,18 +200,18 @@ ui.add_head_html("""
         border-radius: 12px;
     }
 
-    /* --- LOGO SPLASH ANIMATION STYLES --- */
+    /* --- WIDER & COOLER LOGO SPLASH ANIMATION STYLES --- */
     #splash-overlay {
         position: fixed;
         inset: 0;
         width: 100vw;
         height: 100vh;
-        background: #050a14;
+        background: radial-gradient(circle at center, #0a1128 0%, #020617 100%);
         display: flex;
         justify-content: center;
         align-items: center;
         z-index: 99999;
-        animation: fadeOutSplash 0.6s ease-in-out 3.5s forwards;
+        animation: fadeOutSplash 0.7s ease-in-out 4.2s forwards;
         pointer-events: none;
     }
 
@@ -220,81 +220,89 @@ ui.add_head_html("""
         flex-direction: column;
         align-items: flex-start;
         justify-content: center;
+        padding: 20px;
     }
 
     .logo-top-row {
         display: flex;
         align-items: center;
-        gap: 18px;
+        gap: 28px;
     }
 
-    /* Glowing Blue Orb */
+    /* Glowing Blue Orb with Energy Pulse */
     .blue-orb {
-        width: 58px;
-        height: 58px;
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, #ffffff 0%, #38bdf8 30%, #1d4ed8 70%, #030712 100%);
-        box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), 0 0 50px rgba(29, 78, 216, 0.5);
+        background: radial-gradient(circle at 35% 35%, #ffffff 0%, #38bdf8 35%, #1d4ed8 75%, #030712 100%);
+        box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(29, 78, 216, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.8);
         opacity: 0;
-        transform: scale(0);
-        animation: orbAppear 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards;
+        transform: scale(0) rotate(-45deg);
+        animation: orbAppear 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards, orbPulse 2s infinite ease-in-out 1.2s;
     }
 
-    /* PHYSICS Word with Animated Letters */
+    /* PHYSICS Word: Wider Letter Spacing & Glowing Effects */
     .logo-physics {
         display: flex;
         font-family: 'Orbitron', sans-serif;
-        font-size: 3.2rem;
+        font-size: 4rem;
         font-weight: 900;
-        letter-spacing: 3px;
+        letter-spacing: 16px; /* WIDER SPACING */
         color: #ffffff;
-        text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+        text-shadow: 0 0 20px rgba(56, 189, 248, 0.5), 0 0 40px rgba(59, 130, 246, 0.3);
     }
 
     .logo-physics span {
         display: inline-block;
         opacity: 0;
-        transform: translateY(20px) scale(0.8);
-        animation: letterReveal 0.4s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;
+        transform: translateY(-30px) scale(0.6) rotate(-10deg);
+        filter: blur(8px);
+        animation: coolLetterReveal 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
     /* Letter Delay Timings */
-    .logo-physics span:nth-child(1) { animation-delay: 0.8s; }
-    .logo-physics span:nth-child(2) { animation-delay: 0.9s; }
-    .logo-physics span:nth-child(3) { animation-delay: 1.0s; }
-    .logo-physics span:nth-child(4) { animation-delay: 1.1s; }
-    .logo-physics span:nth-child(5) { animation-delay: 1.2s; }
-    .logo-physics span:nth-child(6) { animation-delay: 1.3s; }
-    .logo-physics span:nth-child(7) { animation-delay: 1.4s; }
+    .logo-physics span:nth-child(1) { animation-delay: 0.9s; }
+    .logo-physics span:nth-child(2) { animation-delay: 1.05s; }
+    .logo-physics span:nth-child(3) { animation-delay: 1.2s; }
+    .logo-physics span:nth-child(4) { animation-delay: 1.35s; }
+    .logo-physics span:nth-child(5) { animation-delay: 1.5s; }
+    .logo-physics span:nth-child(6) { animation-delay: 1.65s; }
+    .logo-physics span:nth-child(7) { animation-delay: 1.8s; }
 
     /* Lab AI Subtitle */
     .logo-lab-ai {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 1.8rem;
-        font-weight: 500;
-        letter-spacing: 6px;
-        color: #93c5fd;
-        margin-left: 76px;
-        margin-top: -6px;
+        font-size: 2.2rem;
+        font-weight: 700;
+        letter-spacing: 12px;
+        color: #38bdf8;
+        margin-left: 100px;
+        margin-top: -8px;
         opacity: 0;
-        transform: translateY(10px);
-        animation: labAiReveal 0.6s ease-out 1.8s forwards;
+        transform: translateY(15px);
+        text-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+        animation: labAiReveal 0.7s ease-out 2.3s forwards;
     }
 
-    /* Keyframes */
+    /* Keyframe Animations */
     @keyframes orbAppear {
-        0% { opacity: 0; transform: scale(0); }
-        100% { opacity: 1; transform: scale(1); }
+        0% { opacity: 0; transform: scale(0) rotate(-45deg); }
+        100% { opacity: 1; transform: scale(1) rotate(0deg); }
     }
 
-    @keyframes letterReveal {
-        0% { opacity: 0; transform: translateY(20px) scale(0.8); filter: blur(4px); }
-        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    @keyframes orbPulse {
+        0%, 100% { box-shadow: 0 0 30px rgba(56, 189, 248, 0.9), 0 0 60px rgba(29, 78, 216, 0.6); }
+        50% { box-shadow: 0 0 45px rgba(56, 189, 248, 1), 0 0 80px rgba(29, 78, 216, 0.8); }
+    }
+
+    @keyframes coolLetterReveal {
+        0% { opacity: 0; transform: translateY(-30px) scale(0.6) rotate(-10deg); filter: blur(8px); }
+        100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); filter: blur(0); }
     }
 
     @keyframes labAiReveal {
-        0% { opacity: 0; transform: translateY(10px); }
-        100% { opacity: 1; transform: translateY(0); }
+        0% { opacity: 0; transform: translateY(15px); filter: blur(4px); }
+        100% { opacity: 1; transform: translateY(0); filter: blur(0); }
     }
 
     @keyframes fadeOutSplash {
@@ -332,8 +340,8 @@ ui.add_head_html("""
         position: fixed;
         bottom: 85px;
         right: 25px;
-        width: 360px;
-        height: 480px;
+        width: 390px;
+        height: 520px;
         background: #0f172a;
         border: 1px solid rgba(148, 163, 184, 0.25);
         border-radius: 16px;
@@ -380,11 +388,12 @@ ui.add_head_html("""
     }
 
     .chat-msg {
-        max-width: 82%;
+        max-width: 85%;
         padding: 10px 14px;
         border-radius: 12px;
         font-size: 0.88rem;
-        line-height: 1.45;
+        line-height: 1.5;
+        white-space: pre-wrap;
     }
 
     .chat-msg-user {
@@ -434,9 +443,9 @@ ui.add_head_html("""
 </style>
 """)
 
-# Inject Custom Logo Splash Overlay HTML
+# Inject Custom Logo Splash Overlay HTML & Comprehensive Physics Assistant JavaScript Engine
 ui.add_body_html("""
-<!-- 1. EXACT LOGO ANIMATION OVERLAY -->
+<!-- 1. ENHANCED WIDER LOGO ANIMATION OVERLAY -->
 <div id="splash-overlay">
   <div class="logo-frame">
     <div class="logo-top-row">
@@ -450,18 +459,18 @@ ui.add_body_html("""
 </div>
 
 <!-- 2. FLOATING AI ASSISTANT WIDGET -->
-<button id="ai-toggle-btn" onclick="toggleAIChat()">🤖 AI Study Assistant</button>
+<button id="ai-toggle-btn" onclick="toggleAIChat()">🤖 Physics AI Assistant</button>
 
 <div id="ai-chat-box">
   <div class="chat-header">
-    <h3>⚡ Physics Assistant AI</h3>
+    <h3>⚡ Advanced Physics AI Engine</h3>
     <button class="chat-close-btn" onclick="toggleAIChat()">×</button>
   </div>
   <div class="chat-messages" id="chatMessages">
-    <div class="chat-msg chat-msg-ai">Hello! I am your Physics Study Assistant. Ask me anything about Newton's Laws, Kinematics, Energy, or Formulas!</div>
+    <div class="chat-msg chat-msg-ai">Welcome! I am your Advanced Physics AI. Ask me anything about Newton's Laws, Kinematics, Black Holes, Quantum Mechanics, Energy, Relativity, or Electromagnetism!</div>
   </div>
   <div class="chat-input-area">
-    <input type="text" id="userInput" placeholder="Ask a physics question..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+    <input type="text" id="userInput" placeholder="Ask Newton's laws, Black holes, Quantum..." onkeydown="if(event.key==='Enter') sendAIMessage()">
     <button onclick="sendAIMessage()">Send</button>
   </div>
 </div>
@@ -483,7 +492,7 @@ function sendAIMessage() {
   setTimeout(() => {
     const response = getAIPhysicsResponse(text);
     appendMessage(response, 'ai');
-  }, 400);
+  }, 350);
 }
 
 function appendMessage(text, sender) {
@@ -495,29 +504,65 @@ function appendMessage(text, sender) {
   chat.scrollTop = chat.scrollHeight;
 }
 
+// COMPREHENSIVE PHYSICS KNOWLEDGE ENGINE
 function getAIPhysicsResponse(query) {
   const q = query.toLowerCase();
 
-  if (q.includes('hi') || q.includes('hello') || q.includes('hey')) {
-    return "Hello! How can I assist you with your physics lab concepts today?";
-  }
-  if (q.includes('gravity') || q.includes('g=')) {
-    return "Gravity on Earth causes an acceleration of approximately 9.81 m/s² toward the center of mass.";
-  }
-  if (q.includes('projectile') || q.includes('launch')) {
-    return "In projectile motion, horizontal velocity (Vx) stays constant if air resistance is ignored, while vertical velocity (Vy) changes due to gravity.";
-  }
-  if (q.includes('pendulum')) {
-    return "The time period of a simple pendulum is T = 2π√(L/g). Notice that it depends only on string length L and gravity g, not on the mass!";
-  }
-  if (q.includes('ohm') || q.includes('voltage') || q.includes('resistance')) {
-    return "Ohm's Law states that Voltage (V) = Current (I) × Resistance (R).";
-  }
-  if (q.includes('kinetic') || q.includes('energy')) {
-    return "Kinetic Energy is calculated as KE = ½ × m × v², where m is mass and v is velocity.";
+  // --- NEWTON'S LAWS OF MOTION ---
+  if (q.includes('newton') || q.includes("law of motion") || q.includes('inertia') || q.includes('f=ma')) {
+    if (q.includes('first') || q.includes('inertia')) {
+      return "📌 Newton's First Law (Law of Inertia):\nAn object remains at rest or in uniform linear motion unless acted upon by a net external force.\n\nExample: A book on a table stays put until pushed.";
+    }
+    if (q.includes('second') || q.includes('f=ma') || q.includes('force')) {
+      return "📌 Newton's Second Law:\nAcceleration is directly proportional to net force and inversely proportional to mass.\nFormula: F = m × a (Force = Mass × Acceleration).\n\nExample: Pushing a lighter box produces greater acceleration than a heavier box with equal force.";
+    }
+    if (q.includes('third') || q.includes('action') || q.includes('reaction')) {
+      return "📌 Newton's Third Law:\nFor every action force, there is an equal and opposite reaction force.\nFormula: F_A = -F_B.\n\nExample: Rocket propulsion—burning gases push downward while pushing the rocket upward.";
+    }
+    return "📌 Newton's 3 Laws of Motion Summary:\n1. Inertia: Objects keep doing what they are doing unless forced.\n2. Acceleration: F = m × a.\n3. Action-Reaction: Equal & opposite forces on interaction pairs.";
   }
 
-  return `Great question about "${query}". In general, remember to check unit consistency (SI units) when solving physics equations!`;
+  // --- KINEMATICS ---
+  if (q.includes('kinematic') || q.includes('velocity') || q.includes('acceleration') || q.includes('displacement') || q.includes('projectile')) {
+    return "🚀 Kinematics Equations (Uniform Acceleration):\n1. v = u + at\n2. s = ut + ½at²\n3. v² = u² + 2as\n4. s = ½(u + v)t\n\nWhere:\n• u = Initial Velocity\n• v = Final Velocity\n• a = Acceleration\n• t = Time\n• s = Displacement";
+  }
+
+  // --- BLACK HOLES & ASTROPHYSICS ---
+  if (q.includes('black hole') || q.includes('event horizon') || q.includes('singularity') || q.includes('hawking') || q.includes('schwarzschild')) {
+    return "🌌 Black Holes Physics:\n• Event Horizon: The point of no return where escape velocity exceeds light speed (c).\n• Schwarzschild Radius: R_s = 2GM / c².\n• Gravitational Singularity: Infinite density center where space-time curvature approaches infinity.\n• Hawking Radiation: Quantum fluctuations near the horizon causing black holes to slowly evaporate over time.\n• Gravitational Time Dilation: Clocks run slower in stronger gravitational fields near black holes.";
+  }
+
+  // --- QUANTUM MECHANICS ---
+  if (q.includes('quantum') || q.includes('schrodinger') || q.includes('uncertainty') || q.includes('tunneling') || q.includes('superposition') || q.includes('photon') || q.includes('planck')) {
+    return "⚛️ Quantum Mechanics Core Concepts:\n1. Wave-Particle Duality: Light and matter exhibit both wave-like and particle-like properties (E = hf, λ = h/p).\n2. Heisenberg Uncertainty Principle: Δx · Δp ≥ ℏ / 2 (Position & momentum cannot be simultaneously measured with absolute precision).\n3. Schrödinger Equation: iℏ ∂Ψ/∂t = ĤΨ (Describes how the quantum state / wave function evolves).\n4. Quantum Superposition: A system exists in a linear combination of states until measured.\n5. Quantum Tunneling: Particles pass through potential barriers exceeding their kinetic energy.";
+  }
+
+  // --- RELATIVITY ---
+  if (q.includes('relativity') || q.includes('einstein') || q.includes('e=mc') || q.includes('speed of light')) {
+    return "⚡ Relativity Theory:\n• Special Relativity: Speed of light c is invariant in all inertial frames. E = mc² shows mass-energy equivalence. Time dilates and length contracts at relativistic speeds.\n• General Relativity: Gravity is not a force, but the curvature of space-time caused by mass and energy.";
+  }
+
+  // --- THERMODYNAMICS ---
+  if (q.includes('thermodynamics') || q.includes('entropy') || q.includes('heat') || q.includes('temperature')) {
+    return "🔥 Laws of Thermodynamics:\n0th Law: Thermal equilibrium defines temperature.\n1st Law: Energy conservation (ΔU = Q - W).\n2nd Law: Entropy of an isolated system always increases (S ≥ 0).\n3rd Law: Absolute zero (0 K) cannot be reached in a finite number of steps.";
+  }
+
+  // --- ELECTROMAGNETISM & ELECTRICITY ---
+  if (q.includes('electricity') || q.includes('ohm') || q.includes('magnetic') || q.includes('charge') || q.includes('maxwell')) {
+    return "⚡ Electromagnetism:\n• Ohm's Law: V = I × R\n• Coulomb's Law: F = k(q1·q2)/r²\n• Maxwell's Equations: Describe electric and magnetic fields, showing that light is an electromagnetic wave moving at c ≈ 3×10⁸ m/s.";
+  }
+
+  // --- GENERAL ENERGY / WORK ---
+  if (q.includes('energy') || q.includes('work') || q.includes('power')) {
+    return "💡 Energy & Work:\n• Work: W = F · d · cos(θ) [Joules]\n• Kinetic Energy: KE = ½mv²\n• Potential Energy: PE = mgh\n• Power: P = W / t [Watts]\n• Conservation Law: Energy cannot be created or destroyed, only transformed!";
+  }
+
+  // GREETINGS & DEFAULT FALLBACK
+  if (q.includes('hi') || q.includes('hello') || q.includes('hey')) {
+    return "Hello! I am your Advanced Physics AI Assistant. Ask me anything about Classical Mechanics, Kinematics, Quantum Physics, or Astrophysics!";
+  }
+
+  return `🌌 Knowledge query received for "${query}":\nIn physics, fundamental laws govern everything from quantum subatomic particles to cosmic black holes. Check unit consistency in SI standards (meters, kilograms, seconds) when applying formulas!`;
 }
 </script>
 """)
