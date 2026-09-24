@@ -8,7 +8,7 @@ from nicegui import app, ui
 # PHYSICS LAB AI CONFIGURATION
 # =========================================================
 
-APP_NAME = "Physics Lab AI"
+APP_NAME = "PHYSICS Lab AI"
 
 # Serve assets folder
 app.add_static_files("/assets", "assets")
@@ -50,11 +50,13 @@ def get_greeting():
 
 
 # =========================================================
-# GLOBAL CSS
+# GLOBAL CSS & HTML HEAD INJECTIONS
 # =========================================================
 
 ui.add_head_html("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;700&display=swap');
+
     * {
         box-sizing: border-box;
     }
@@ -197,8 +199,329 @@ ui.add_head_html("""
         border: 1px solid #1e293b;
         border-radius: 12px;
     }
+
+    /* --- LOGO SPLASH ANIMATION STYLES --- */
+    #splash-overlay {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #050a14;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 99999;
+        animation: fadeOutSplash 0.6s ease-in-out 3.5s forwards;
+        pointer-events: none;
+    }
+
+    .logo-frame {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+    }
+
+    .logo-top-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    /* Glowing Blue Orb */
+    .blue-orb {
+        width: 58px;
+        height: 58px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #ffffff 0%, #38bdf8 30%, #1d4ed8 70%, #030712 100%);
+        box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), 0 0 50px rgba(29, 78, 216, 0.5);
+        opacity: 0;
+        transform: scale(0);
+        animation: orbAppear 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s forwards;
+    }
+
+    /* PHYSICS Word with Animated Letters */
+    .logo-physics {
+        display: flex;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 3.2rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+        color: #ffffff;
+        text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    }
+
+    .logo-physics span {
+        display: inline-block;
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+        animation: letterReveal 0.4s cubic-bezier(0.215, 0.610, 0.355, 1.000) forwards;
+    }
+
+    /* Letter Delay Timings */
+    .logo-physics span:nth-child(1) { animation-delay: 0.8s; }
+    .logo-physics span:nth-child(2) { animation-delay: 0.9s; }
+    .logo-physics span:nth-child(3) { animation-delay: 1.0s; }
+    .logo-physics span:nth-child(4) { animation-delay: 1.1s; }
+    .logo-physics span:nth-child(5) { animation-delay: 1.2s; }
+    .logo-physics span:nth-child(6) { animation-delay: 1.3s; }
+    .logo-physics span:nth-child(7) { animation-delay: 1.4s; }
+
+    /* Lab AI Subtitle */
+    .logo-lab-ai {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 500;
+        letter-spacing: 6px;
+        color: #93c5fd;
+        margin-left: 76px;
+        margin-top: -6px;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: labAiReveal 0.6s ease-out 1.8s forwards;
+    }
+
+    /* Keyframes */
+    @keyframes orbAppear {
+        0% { opacity: 0; transform: scale(0); }
+        100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes letterReveal {
+        0% { opacity: 0; transform: translateY(20px) scale(0.8); filter: blur(4px); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    @keyframes labAiReveal {
+        0% { opacity: 0; transform: translateY(10px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOutSplash {
+        0% { opacity: 1; visibility: visible; }
+        100% { opacity: 0; visibility: hidden; }
+    }
+
+    /* --- FLOATING AI WIDGET STYLES --- */
+    #ai-toggle-btn {
+        position: fixed;
+        bottom: 25px;
+        right: 25px;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: white;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+        z-index: 9000;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #ai-toggle-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 25px rgba(37, 99, 235, 0.6);
+    }
+
+    #ai-chat-box {
+        position: fixed;
+        bottom: 85px;
+        right: 25px;
+        width: 360px;
+        height: 480px;
+        background: #0f172a;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        display: none;
+        flex-direction: column;
+        z-index: 9000;
+        overflow: hidden;
+        backdrop-filter: blur(20px);
+    }
+
+    .chat-header {
+        background: #1e293b;
+        padding: 14px 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .chat-header h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: #f8fafc;
+        font-weight: bold;
+    }
+
+    .chat-close-btn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.3rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 14px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .chat-msg {
+        max-width: 82%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .chat-msg-user {
+        align-self: flex-end;
+        background: #2563eb;
+        color: #ffffff;
+        border-bottom-right-radius: 2px;
+    }
+
+    .chat-msg-ai {
+        align-self: flex-start;
+        background: #1e293b;
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.15);
+        border-bottom-left-radius: 2px;
+    }
+
+    .chat-input-area {
+        display: flex;
+        padding: 12px;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+        background: #090d16;
+        gap: 8px;
+    }
+
+    .chat-input-area input {
+        flex: 1;
+        background: #1e293b;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        color: #ffffff;
+        padding: 9px 14px;
+        border-radius: 8px;
+        outline: none;
+        font-size: 0.88rem;
+    }
+
+    .chat-input-area button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 9px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 0.85rem;
+    }
 </style>
 """)
+
+# Inject Custom Logo Splash Overlay HTML
+ui.add_body_html("""
+<!-- 1. EXACT LOGO ANIMATION OVERLAY -->
+<div id="splash-overlay">
+  <div class="logo-frame">
+    <div class="logo-top-row">
+      <div class="blue-orb"></div>
+      <div class="logo-physics">
+        <span>P</span><span>H</span><span>Y</span><span>S</span><span>I</span><span>C</span><span>S</span>
+      </div>
+    </div>
+    <div class="logo-lab-ai">Lab AI</div>
+  </div>
+</div>
+
+<!-- 2. FLOATING AI ASSISTANT WIDGET -->
+<button id="ai-toggle-btn" onclick="toggleAIChat()">🤖 AI Study Assistant</button>
+
+<div id="ai-chat-box">
+  <div class="chat-header">
+    <h3>⚡ Physics Assistant AI</h3>
+    <button class="chat-close-btn" onclick="toggleAIChat()">×</button>
+  </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg chat-msg-ai">Hello! I am your Physics Study Assistant. Ask me anything about Newton's Laws, Kinematics, Energy, or Formulas!</div>
+  </div>
+  <div class="chat-input-area">
+    <input type="text" id="userInput" placeholder="Ask a physics question..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+    <button onclick="sendAIMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+function toggleAIChat() {
+  const box = document.getElementById('ai-chat-box');
+  box.style.display = (box.style.display === 'flex') ? 'none' : 'flex';
+}
+
+function sendAIMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendMessage(text, 'user');
+  input.value = '';
+
+  setTimeout(() => {
+    const response = getAIPhysicsResponse(text);
+    appendMessage(response, 'ai');
+  }, 400);
+}
+
+function appendMessage(text, sender) {
+  const chat = document.getElementById('chatMessages');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `chat-msg chat-msg-${sender}`;
+  msgDiv.textContent = text;
+  chat.appendChild(msgDiv);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function getAIPhysicsResponse(query) {
+  const q = query.toLowerCase();
+
+  if (q.includes('hi') || q.includes('hello') || q.includes('hey')) {
+    return "Hello! How can I assist you with your physics lab concepts today?";
+  }
+  if (q.includes('gravity') || q.includes('g=')) {
+    return "Gravity on Earth causes an acceleration of approximately 9.81 m/s² toward the center of mass.";
+  }
+  if (q.includes('projectile') || q.includes('launch')) {
+    return "In projectile motion, horizontal velocity (Vx) stays constant if air resistance is ignored, while vertical velocity (Vy) changes due to gravity.";
+  }
+  if (q.includes('pendulum')) {
+    return "The time period of a simple pendulum is T = 2π√(L/g). Notice that it depends only on string length L and gravity g, not on the mass!";
+  }
+  if (q.includes('ohm') || q.includes('voltage') || q.includes('resistance')) {
+    return "Ohm's Law states that Voltage (V) = Current (I) × Resistance (R).";
+  }
+  if (q.includes('kinetic') || q.includes('energy')) {
+    return "Kinetic Energy is calculated as KE = ½ × m × v², where m is mass and v is velocity.";
+  }
+
+  return `Great question about "${query}". In general, remember to check unit consistency (SI units) when solving physics equations!`;
+}
+</script>
+""")
+
 
 # =========================================================
 # MAIN CONTAINER & ROUTING
@@ -361,7 +684,6 @@ def run_projectile_simulation():
 
         metrics_label = ui.label("Ready to launch.").classes("text-blue-400 font-semibold mb-2 text-sm")
 
-        # HTML5 Canvas for real-time 2D Animation
         canvas_id = "projCanvas"
         ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
 
@@ -371,9 +693,7 @@ def run_projectile_simulation():
             if(!canvas) return;
             const ctx = canvas.getContext('2d');
             
-            let animId = null;
-            let running = false;
-            let t = 0;
+            let animId = null, running = false, t = 0;
             const dt = 0.03;
 
             function resize() {{
@@ -401,7 +721,6 @@ def run_projectile_simulation():
                 function draw() {{
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // Draw Ground
                     ctx.beginPath();
                     ctx.moveTo(30, canvas.height - 40);
                     ctx.lineTo(canvas.width - 30, canvas.height - 40);
@@ -409,7 +728,6 @@ def run_projectile_simulation():
                     ctx.lineWidth = 3;
                     ctx.stroke();
 
-                    // Physics calculate
                     const x = vx0 * t;
                     const y = (vy0 * t) - (0.5 * g * t * t);
                     const current_vy = vy0 - (g * t);
@@ -417,7 +735,6 @@ def run_projectile_simulation():
                     const cx = 40 + x * scale;
                     const cy = (canvas.height - 40) - y * scale;
 
-                    // Trajectory curve
                     ctx.beginPath();
                     for(let i=0; i<=t; i+=0.02) {{
                         let ix = vx0 * i;
@@ -433,14 +750,12 @@ def run_projectile_simulation():
                     ctx.stroke();
                     ctx.setLineDash([]);
 
-                    // Ball
                     if (cy <= canvas.height - 40) {{
                         ctx.beginPath();
                         ctx.arc(cx, cy, 10, 0, Math.PI * 2);
                         ctx.fillStyle = '#ef4444';
                         ctx.fill();
 
-                        // Vectors
                         const vLen = 2.5;
                         if(showVx) {{
                             ctx.beginPath();
@@ -563,7 +878,6 @@ def run_pendulum_simulation():
                     const bobX = pivotX + armLen * Math.sin(angle);
                     const bobY = pivotY + armLen * Math.cos(angle);
 
-                    // Support Roof
                     ctx.beginPath();
                     ctx.moveTo(pivotX - 50, pivotY);
                     ctx.lineTo(pivotX + 50, pivotY);
@@ -571,7 +885,6 @@ def run_pendulum_simulation():
                     ctx.lineWidth = 4;
                     ctx.stroke();
 
-                    // String
                     ctx.beginPath();
                     ctx.moveTo(pivotX, pivotY);
                     ctx.lineTo(bobX, bobY);
@@ -579,13 +892,11 @@ def run_pendulum_simulation():
                     ctx.lineWidth = 3;
                     ctx.stroke();
 
-                    // Bob
                     ctx.beginPath();
                     ctx.arc(bobX, bobY, 18, 0, Math.PI * 2);
                     ctx.fillStyle = '#a855f7';
                     ctx.fill();
 
-                    // Vectors
                     if(showV) {{
                         const vx = angleVel * Math.cos(angle) * 40;
                         const vy = -angleVel * Math.sin(angle) * 40;
@@ -672,8 +983,7 @@ def run_spring_simulation():
             window.runSpring = function(m, k) {{
                 cancelAnimationFrame(animId);
                 running = true;
-                let x = 80;
-                let v = 0;
+                let x = 80, v = 0;
                 const dt = 0.03;
 
                 function draw() {{
@@ -687,11 +997,9 @@ def run_spring_simulation():
 
                     const boxX = wallX + 180 + x;
 
-                    // Wall
                     ctx.fillStyle = '#475569';
                     ctx.fillRect(20, centerY - 60, 20, 120);
 
-                    // Spring
                     ctx.beginPath();
                     ctx.moveTo(wallX, centerY);
                     const coils = 12;
@@ -704,7 +1012,6 @@ def run_spring_simulation():
                     ctx.lineWidth = 3;
                     ctx.stroke();
 
-                    // Mass Box
                     ctx.fillStyle = '#059669';
                     ctx.fillRect(boxX, centerY - 35, 70, 70);
                     ctx.fillStyle = '#ffffff';
@@ -784,7 +1091,6 @@ def run_gravity_simulation():
                     const scale = (canvas.height - 80) / h;
                     const ballY = 40 + yMeters * scale;
 
-                    // Floor
                     ctx.fillStyle = '#f59e0b';
                     ctx.fillRect(40, groundY, canvas.width - 80, 6);
 
@@ -794,7 +1100,6 @@ def run_gravity_simulation():
                         ctx.fillStyle = '#fbbf24';
                         ctx.fill();
 
-                        // Velocity Vector
                         ctx.beginPath();
                         ctx.moveTo(canvas.width / 2, ballY);
                         ctx.lineTo(canvas.width / 2, ballY + (g * t) * 2);
