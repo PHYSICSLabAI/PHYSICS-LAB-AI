@@ -10,7 +10,7 @@ from nicegui import app, ui
 
 APP_NAME = "Physics Lab AI"
 
-# Serve assets folder (Ensure 'logo.jpg' and 'Banner_2.jpg' exist in 'assets/')
+# Serve assets folder
 app.add_static_files("/assets", "assets")
 
 # Dark mode controller
@@ -158,12 +158,11 @@ ui.add_head_html("""
     .physics-main { max-width: 1400px; margin: auto; }
 
     .action-card {
-        cursor: pointer;
         transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .action-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-2px);
         border-color: rgba(59, 130, 246, 0.5) !important;
     }
 
@@ -191,11 +190,12 @@ ui.add_head_html("""
         border-radius: 6px;
     }
 
-    .canvas-box {
-        background: #090d16;
+    .sim-canvas {
+        width: 100%;
+        height: 380px;
+        background-color: #090d16;
         border: 1px solid #1e293b;
         border-radius: 12px;
-        overflow: hidden;
     }
 </style>
 """)
@@ -206,13 +206,13 @@ ui.add_head_html("""
 
 content = ui.column().classes("physics-main w-full min-h-screen px-4 md:px-8 py-8")
 
-def navigate_to(func, addToHistory=True):
+def navigate_to(func, addToHistory=True, *args, **kwargs):
     global current_view
-    if addToHistory and current_view and current_view != func:
+    if addToHistory and current_view:
         navigation_history.append(current_view)
-    current_view = func
+    current_view = lambda: func(*args, **kwargs)
     content.clear()
-    func()
+    func(*args, **kwargs)
 
 def go_back():
     global current_view
@@ -239,266 +239,604 @@ def show_home():
         with ui.column().classes("w-full pt-6 md:pt-12 pb-6"):
             ui.label(f"{get_greeting()}, Sir.").classes("text-blue-500 text-lg md:text-xl font-semibold mb-2")
             ui.label("Welcome to Physics Lab AI").classes("text-4xl md:text-6xl font-extrabold tracking-tight")
-            ui.label("PhET & GeoGebra style interactive simulations, physics calculators, and lab experiment manager.").classes("text-muted text-base md:text-lg mt-3 max-w-2xl")
+            ui.label("Interactive physics simulations, real-time 2D animated models, calculators, and lab experiment manager.").classes("text-muted text-base md:text-lg mt-3 max-w-2xl")
 
         with ui.grid(columns=1).classes("w-full md:grid-cols-2 lg:grid-cols-3 gap-5 mt-4"):
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_simulations)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_simulations)):
                 ui.icon("model_training").classes("text-4xl text-purple-500")
-                ui.label("Interactive Simulations").classes("text-xl font-semibold mt-4")
-                ui.label("PhET & GeoGebra style visual physics engines with real-time controls.").classes("text-muted mt-1 text-sm")
+                ui.label("Physics Lab AI Simulations").classes("text-xl font-semibold mt-4")
+                ui.label("Interactive visual 2D motion models with vector overlays and controls.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_physics_calculator)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_physics_calculator)):
                 ui.icon("functions").classes("text-4xl text-emerald-500")
                 ui.label("Physics Calculator Suite").classes("text-xl font-semibold mt-4")
                 ui.label("Calculate KE, PE, Force, Work, Momentum, Acceleration, Ohm's Law & Waves.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_experiment)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_experiment)):
                 ui.icon("science").classes("text-4xl text-blue-500")
                 ui.label("New Lab Experiment").classes("text-xl font-semibold mt-4")
                 ui.label("Design, test, and save custom experimental observations.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_saved_labs)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_saved_labs)):
                 ui.icon("folder").classes("text-4xl text-orange-500")
                 ui.label("Saved Labs").classes("text-xl font-semibold mt-4")
                 ui.label("Access and manage saved experiment records.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_ai_search)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_ai_search)):
                 ui.icon("auto_awesome").classes("text-4xl text-amber-500")
                 ui.label("AI Physics Assistant").classes("text-xl font-semibold mt-4")
                 ui.label("Solve complex physics problems and generate custom scenarios.").classes("text-muted mt-1 text-sm")
 
-            with ui.card().classes("glass-card action-card p-6").on("click", lambda: navigate_to(show_calculator)):
+            with ui.card().classes("glass-card action-card p-6 cursor-pointer").on("click", lambda: navigate_to(show_calculator)):
                 ui.icon("calculate").classes("text-4xl text-cyan-500")
                 ui.label("Standard Calculator").classes("text-xl font-semibold mt-4")
                 ui.label("Perform quick mathematical calculations.").classes("text-muted mt-1 text-sm")
 
 
 # =========================================================
-# PHET & GEOGEBRA STYLE SIMULATION MODULE
+# PHYSICS LAB AI SIMULATIONS LIST VIEW
 # =========================================================
 
 def show_simulations():
     with content:
-        page_title("PhET & GeoGebra Interactive Physics Visualizers", "Real-time canvas simulations with parameter inputs, validation, and live animations.")
+        page_title("Physics Lab AI Simulations", "Select a physics topic below and click 'Run Simulation' to start real-time interactive 2D animations.")
 
-        with ui.card().classes("glass-card w-full p-6 mt-6"):
-            with ui.tabs().classes("w-full") as sim_tabs:
-                proj_tab = ui.tab("1. Projectile Motion")
-                pend_tab = ui.tab("2. Simple Pendulum")
-                spring_tab = ui.tab("3. Spring-Mass Harmonic")
-                grav_tab = ui.tab("4. Gravity & Free Fall")
+        simulations_list = [
+            {
+                "id": "projectile",
+                "title": "Projectile Motion",
+                "icon": "sports_baseball",
+                "color": "text-blue-500",
+                "description": "Simulate launch trajectory, velocity vectors, and component breakdowns (Vx & Vy) with real-time ball movement.",
+                "action": lambda: navigate_to(run_projectile_simulation)
+            },
+            {
+                "id": "pendulum",
+                "title": "Simple Pendulum Oscillator",
+                "icon": "swap_horizontal_circle",
+                "color": "text-purple-500",
+                "description": "Interactive harmonic pendulum motion with angle components, restoring force vectors, and angular velocity display.",
+                "action": lambda: navigate_to(run_pendulum_simulation)
+            },
+            {
+                "id": "spring",
+                "title": "Spring-Mass Harmonic Oscillator",
+                "icon": "reorder",
+                "color": "text-emerald-500",
+                "description": "Hooke's Law spring oscillation animation with force vectors and real-time displacement tracking.",
+                "action": lambda: navigate_to(run_spring_simulation)
+            },
+            {
+                "id": "gravity",
+                "title": "Gravity & Free Fall Motion",
+                "icon": "south",
+                "color": "text-amber-500",
+                "description": "Vertical drop simulation under gravitational acceleration with real-time velocity vector and distance counters.",
+                "action": lambda: navigate_to(run_gravity_simulation)
+            }
+        ]
 
-            with ui.tab_panels(sim_tabs, value=proj_tab).classes("w-full bg-transparent mt-4"):
+        with ui.column().classes("w-full gap-4 mt-6"):
+            for sim in simulations_list:
+                with ui.card().classes("glass-card action-card w-full p-6"):
+                    with ui.row().classes("w-full items-center justify-between gap-4"):
+                        with ui.row().classes("items-center gap-4 flex-1"):
+                            ui.icon(sim["icon"]).classes(f"text-4xl {sim['color']}")
+                            with ui.column().classes("gap-1"):
+                                ui.label(sim["title"]).classes("text-xl font-bold")
+                                ui.label(sim["description"]).classes("text-muted text-sm")
+                        
+                        ui.button("▶ Run Simulation", on_click=sim["action"]).props("color=primary rounded").classes("px-6 py-2 font-bold shadow-md")
 
-                # ---------------------------------------------
-                # 1. PROJECTILE MOTION
-                # ---------------------------------------------
-                with ui.tab_panel(proj_tab):
-                    ui.label("Projectile Motion Simulator").classes("text-2xl font-bold text-blue-400 mb-1")
-                    ui.label("Adjust parameters and click 'Run Simulation' to trace projectile trajectory.").classes("text-sm text-muted mb-4")
 
-                    with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4 mb-4"):
-                        p_v0 = ui.number(label="Initial Velocity v₀ (m/s)", value=25.0).props("outlined")
-                        p_angle = ui.number(label="Launch Angle θ (°)", value=45.0).props("outlined")
-                        p_g = ui.number(label="Gravity g (m/s²)", value=9.81).props("outlined")
+# =========================================================
+# 2D ANIMATED SIMULATION RUNNERS
+# =========================================================
 
-                    err_box = ui.label().classes("text-red-400 font-semibold text-sm mb-2 hidden")
-                    metrics_box = ui.label().classes("text-emerald-400 font-medium text-sm mb-4")
+# --- 1. PROJECTILE MOTION RUNNER ---
+def run_projectile_simulation():
+    with content:
+        with ui.row().classes("items-center justify-between w-full mb-4"):
+            page_title("Projectile Motion 2D Simulation", "Adjust values, toggle vectors, and click Play to start motion.")
+            ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
 
-                    canvas_html = ui.html().classes("w-full h-80 canvas-box p-2")
+        err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
 
-                    def render_projectile():
-                        v0 = p_v0.value or 0
-                        ang = p_angle.value or 0
-                        g = p_g.value or 0
+        with ui.card().classes("glass-card w-full p-5 mb-4"):
+            with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4"):
+                v0_in = ui.number(label="Initial Velocity v₀ (m/s)", value=30.0, min=1, max=100).props("outlined")
+                ang_in = ui.number(label="Launch Angle θ (°)", value=45.0, min=1, max=89).props("outlined")
+                g_in = ui.number(label="Gravity g (m/s²)", value=9.81, min=0.1, max=30).props("outlined")
 
-                        # Input Validation
-                        if v0 <= 0 or ang <= 0 or ang >= 90 or g <= 0:
-                            err_box.text = "⚠️ Invalid Input! Please enter velocity > 0, angle between 1° and 89°, and gravity > 0."
-                            err_box.classes(remove="hidden")
-                            metrics_box.text = ""
-                            return
-                        else:
-                            err_box.classes(add="hidden")
+            with ui.row().classes("items-center gap-6 mt-4 flex-wrap"):
+                ui.label("Display Overlays:").classes("font-semibold text-sm")
+                chk_v = ui.checkbox("Velocity Vector (Green)", value=True)
+                chk_vx = ui.checkbox("Horizontal Vx (Cyan)", value=True)
+                chk_vy = ui.checkbox("Vertical Vy (Pink)", value=True)
 
-                        rad = math.radians(ang)
-                        t_flight = (2 * v0 * math.sin(rad)) / g
-                        max_h = ((v0 * math.sin(rad)) ** 2) / (2 * g)
-                        max_r = ((v0 ** 2) * math.sin(2 * rad)) / g
+            with ui.row().classes("items-center gap-3 mt-4"):
+                btn_play = ui.button("▶ Start", props="color=positive")
+                btn_pause = ui.button("⏸ Pause", props="color=warning")
+                btn_reset = ui.button("↺ Reset", props="color=negative")
 
-                        metrics_box.text = f"Flight Time: {t_flight:.2f} s | Max Height: {max_h:.2f} m | Total Range: {max_r:.2f} m"
+        metrics_label = ui.label("Ready to launch.").classes("text-blue-400 font-semibold mb-2 text-sm")
 
-                        path_pts = []
-                        steps = 60
-                        for i in range(steps + 1):
-                            t = (t_flight / steps) * i
-                            x = v0 * math.cos(rad) * t
-                            y = (v0 * math.sin(rad) * t) - (0.5 * g * (t ** 2))
-                            cx = 30 + (x / max_r) * 440
-                            cy = 260 - (y / max(max_h, 1)) * 210
-                            path_pts.append(f"{cx:.1f},{cy:.1f}")
+        # HTML5 Canvas for real-time 2D Animation
+        canvas_id = "projCanvas"
+        ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
 
-                        svg_code = f"""
-                        <svg width="100%" height="100%" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
-                                </linearGradient>
-                            </defs>
-                            <line x1="20" y1="260" x2="480" y2="260" stroke="#475569" stroke-width="3"/>
-                            <polyline points="{" ".join(path_pts)}" fill="none" stroke="url(#grad)" stroke-width="4" stroke-dasharray="6,4"/>
-                            <circle cx="{path_pts[-1].split(',')[0]}" cy="{path_pts[-1].split(',')[1]}" r="8" fill="#ef4444"/>
-                            <circle cx="{path_pts[0].split(',')[0]}" cy="{path_pts[0].split(',')[1]}" r="6" fill="#10b981"/>
-                            <text x="30" y="275" fill="#94a3b8" font-size="12">0 m</text>
-                            <text x="440" y="275" fill="#94a3b8" font-size="12">{max_r:.1f} m</text>
-                        </svg>
-                        """
-                        canvas_html.content = svg_code
+        js_script = f"""
+        (function() {{
+            const canvas = document.getElementById('{canvas_id}');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            let animId = null;
+            let running = false;
+            let t = 0;
+            const dt = 0.03;
 
-                    ui.button("▶ Run Simulation", icon="play_arrow", on_click=render_projectile).props("color=primary").classes("mt-2 mb-4")
-                    render_projectile()
+            function resize() {{
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+            }}
+            resize();
 
-                # ---------------------------------------------
-                # 2. SIMPLE PENDULUM
-                # ---------------------------------------------
-                with ui.tab_panel(pend_tab):
-                    ui.label("Simple Pendulum Harmonic Visualizer").classes("text-2xl font-bold text-purple-400 mb-1")
-                    ui.label("Set string length and gravity to compute oscillation metrics.").classes("text-sm text-muted mb-4")
+            window.runProj = function(v0, ang, g, showV, showVx, showVy) {{
+                cancelAnimationFrame(animId);
+                t = 0;
+                running = true;
+                const rad = ang * Math.PI / 180;
+                const vx0 = v0 * Math.cos(rad);
+                const vy0 = v0 * Math.sin(rad);
+                const t_total = (2 * vy0) / g;
+                const max_x = vx0 * t_total;
+                const max_y = (vy0 * vy0) / (2 * g);
 
-                    with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4 mb-4"):
-                        p_length = ui.number(label="String Length L (m)", value=2.0).props("outlined")
-                        p_g_in = ui.number(label="Gravity g (m/s²)", value=9.81).props("outlined")
+                const margin = 50;
+                const scaleX = (canvas.width - 2 * margin) / Math.max(max_x, 10);
+                const scaleY = (canvas.height - 2 * margin) / Math.max(max_y * 1.2, 10);
+                const scale = Math.min(scaleX, scaleY);
 
-                    p_err = ui.label().classes("text-red-400 font-semibold text-sm mb-2 hidden")
-                    p_res = ui.label().classes("text-purple-300 font-medium text-sm mb-4")
+                function draw() {{
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    pend_canvas = ui.html().classes("w-full h-80 canvas-box p-2")
+                    // Draw Ground
+                    ctx.beginPath();
+                    ctx.moveTo(30, canvas.height - 40);
+                    ctx.lineTo(canvas.width - 30, canvas.height - 40);
+                    ctx.strokeStyle = '#475569';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
 
-                    def render_pendulum():
-                        L = p_length.value or 0
-                        g = p_g_in.value or 0
+                    // Physics calculate
+                    const x = vx0 * t;
+                    const y = (vy0 * t) - (0.5 * g * t * t);
+                    const current_vy = vy0 - (g * t);
 
-                        if L <= 0 or g <= 0:
-                            p_err.text = "⚠️ Invalid Input! Length L and Gravity g must both be positive numbers."
-                            p_err.classes(remove="hidden")
-                            p_res.text = ""
-                            return
-                        else:
-                            p_err.classes(add="hidden")
+                    const cx = 40 + x * scale;
+                    const cy = (canvas.height - 40) - y * scale;
 
-                        T = 2 * math.pi * math.sqrt(L / g)
-                        freq = 1 / T
-                        p_res.text = f"Time Period T: {T:.3f} seconds | Oscillation Frequency f: {freq:.3f} Hz"
+                    // Trajectory curve
+                    ctx.beginPath();
+                    for(let i=0; i<=t; i+=0.02) {{
+                        let ix = vx0 * i;
+                        let iy = (vy0 * i) - (0.5 * g * i * i);
+                        let px = 40 + ix * scale;
+                        let py = (canvas.height - 40) - iy * scale;
+                        if(i===0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }}
+                    ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
 
-                        svg_code = f"""
-                        <svg width="100%" height="100%" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="200" y1="20" x2="300" y2="20" stroke="#94a3b8" stroke-width="6"/>
-                            <line x1="250" y1="20" x2="180" y2="200" stroke="#38bdf8" stroke-width="3"/>
-                            <line x1="250" y1="20" x2="320" y2="200" stroke="#38bdf8" stroke-width="1" stroke-dasharray="4,4"/>
-                            <circle cx="180" cy="200" r="18" fill="#a855f7"/>
-                            <path d="M 180 225 Q 250 240 320 225" stroke="#f43f5e" stroke-width="2" fill="none"/>
-                            <text x="210" y="260" fill="#cbd5e1" font-size="13">Period T = {T:.2f} s</text>
-                        </svg>
-                        """
-                        pend_canvas.content = svg_code
+                    // Ball
+                    if (cy <= canvas.height - 40) {{
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fill();
 
-                    ui.button("▶ Run Simulation", icon="play_arrow", on_click=render_pendulum).props("color=purple").classes("mt-2 mb-4")
-                    render_pendulum()
+                        // Vectors
+                        const vLen = 2.5;
+                        if(showVx) {{
+                            ctx.beginPath();
+                            ctx.moveTo(cx, cy);
+                            ctx.lineTo(cx + vx0 * vLen, cy);
+                            ctx.strokeStyle = '#06b6d4';
+                            ctx.lineWidth = 3;
+                            ctx.stroke();
+                        }}
+                        if(showVy) {{
+                            ctx.beginPath();
+                            ctx.moveTo(cx, cy);
+                            ctx.lineTo(cx, cy - current_vy * vLen);
+                            ctx.strokeStyle = '#ec4899';
+                            ctx.lineWidth = 3;
+                            ctx.stroke();
+                        }}
+                        if(showV) {{
+                            ctx.beginPath();
+                            ctx.moveTo(cx, cy);
+                            ctx.lineTo(cx + vx0 * vLen, cy - current_vy * vLen);
+                            ctx.strokeStyle = '#22c55e';
+                            ctx.lineWidth = 3;
+                            ctx.stroke();
+                        }}
+                    }}
 
-                # ---------------------------------------------
-                # 3. SPRING-MASS SYSTEM
-                # ---------------------------------------------
-                with ui.tab_panel(spring_tab):
-                    ui.label("Spring-Mass Oscillator").classes("text-2xl font-bold text-emerald-400 mb-1")
-                    ui.label("Simulate Hooke's law oscillations.").classes("text-sm text-muted mb-4")
+                    if (running && y >= 0) {{
+                        t += dt;
+                        animId = requestAnimationFrame(draw);
+                    }}
+                }}
+                draw();
+            }};
 
-                    with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4 mb-4"):
-                        sm_m = ui.number(label="Mass m (kg)", value=2.0).props("outlined")
-                        sm_k = ui.number(label="Spring Constant k (N/m)", value=50.0).props("outlined")
+            window.pauseProj = function() {{ running = false; }};
+            window.resetProj = function() {{ running = false; ctx.clearRect(0, 0, canvas.width, canvas.height); }};
+        }})();
+        """
+        ui.run_javascript(js_script)
 
-                    sm_err = ui.label().classes("text-red-400 font-semibold text-sm mb-2 hidden")
-                    sm_res = ui.label().classes("text-emerald-300 font-medium text-sm mb-4")
+        def start_sim():
+            v0 = v0_in.value or 0
+            ang = ang_in.value or 0
+            g = g_in.value or 0
 
-                    spring_canvas = ui.html().classes("w-full h-80 canvas-box p-2")
+            if v0 <= 0 or ang <= 0 or ang >= 90 or g <= 0:
+                err_banner.text = "⚠️ Input Error: Velocity & Gravity must be positive. Angle must be between 1° and 89°."
+                err_banner.classes(remove="hidden")
+                return
+            else:
+                err_banner.classes(add="hidden")
 
-                    def render_spring():
-                        m = sm_m.value or 0
-                        k = sm_k.value or 0
+            rad = math.radians(ang)
+            t_total = (2 * v0 * math.sin(rad)) / g
+            max_r = ((v0 ** 2) * math.sin(2 * rad)) / g
+            max_h = ((v0 * math.sin(rad)) ** 2) / (2 * g)
+            metrics_label.text = f"Flight Time: {t_total:.2f}s | Max Height: {max_h:.2f}m | Total Distance: {max_r:.2f}m"
 
-                        if m <= 0 or k <= 0:
-                            sm_err.text = "⚠️ Invalid Input! Mass m and Spring Constant k must be positive values."
-                            sm_err.classes(remove="hidden")
-                            sm_res.text = ""
-                            return
-                        else:
-                            sm_err.classes(add="hidden")
+            ui.run_javascript(f"window.runProj({v0}, {ang}, {g}, {str(chk_v.value).lower()}, {str(chk_vx.value).lower()}, {str(chk_vy.value).lower()});")
 
-                        omega = math.sqrt(k / m)
-                        T = 2 * math.pi / omega
-                        sm_res.text = f"Angular Frequency ω: {omega:.2f} rad/s | Oscillation Period T: {T:.3f} s"
+        btn_play.on("click", start_sim)
+        btn_pause.on("click", lambda: ui.run_javascript("window.pauseProj();"))
+        btn_reset.on("click", lambda: ui.run_javascript("window.resetProj();"))
 
-                        svg_code = f"""
-                        <svg width="100%" height="100%" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="20" y="20" width="15" height="240" fill="#475569"/>
-                            <polyline points="35,140 60,120 80,160 100,120 120,160 140,120 160,160 180,120 200,160 220,140" fill="none" stroke="#10b981" stroke-width="4"/>
-                            <rect x="220" y="100" width="80" height="80" fill="#059669" rx="8"/>
-                            <text x="248" y="145" fill="#ffffff" font-weight="bold" font-size="16">{m}kg</text>
-                            <line x1="35" y1="200" x2="450" y2="200" stroke="#334155" stroke-width="2"/>
-                            <text x="320" y="145" fill="#34d399" font-size="14">k = {k} N/m</text>
-                        </svg>
-                        """
-                        spring_canvas.content = svg_code
 
-                    ui.button("▶ Run Simulation", icon="play_arrow", on_click=render_spring).props("color=emerald").classes("mt-2 mb-4")
-                    render_spring()
+# --- 2. PENDULUM SIMULATION RUNNER ---
+def run_pendulum_simulation():
+    with content:
+        with ui.row().classes("items-center justify-between w-full mb-4"):
+            page_title("Simple Pendulum 2D Simulation", "Adjust string length and angle to observe harmonic motion.")
+            ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
 
-                # ---------------------------------------------
-                # 4. GRAVITY & FREE FALL
-                # ---------------------------------------------
-                with ui.tab_panel(grav_tab):
-                    ui.label("Gravity & Free Fall Visualizer").classes("text-2xl font-bold text-amber-400 mb-1")
-                    ui.label("Calculate drop duration and velocity upon impact.").classes("text-sm text-muted mb-4")
+        err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
 
-                    with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4 mb-4"):
-                        ff_h = ui.number(label="Drop Height h (m)", value=45.0).props("outlined")
-                        ff_g = ui.number(label="Gravity g (m/s²)", value=9.81).props("outlined")
+        with ui.card().classes("glass-card w-full p-5 mb-4"):
+            with ui.grid(columns=1).classes("w-full md:grid-cols-3 gap-4"):
+                l_in = ui.number(label="String Length L (m)", value=2.0, min=0.5, max=10).props("outlined")
+                a_in = ui.number(label="Initial Angle θ (°)", value=30.0, min=5, max=80).props("outlined")
+                g_in = ui.number(label="Gravity g (m/s²)", value=9.81, min=0.1, max=30).props("outlined")
 
-                    ff_err = ui.label().classes("text-red-400 font-semibold text-sm mb-2 hidden")
-                    ff_res = ui.label().classes("text-amber-300 font-medium text-sm mb-4")
+            with ui.row().classes("items-center gap-6 mt-4 flex-wrap"):
+                chk_v = ui.checkbox("Velocity Vector (Green)", value=True)
+                chk_f = ui.checkbox("Restoring Force Vector (Pink)", value=True)
 
-                    ff_canvas = ui.html().classes("w-full h-80 canvas-box p-2")
+            with ui.row().classes("items-center gap-3 mt-4"):
+                btn_play = ui.button("▶ Start", props="color=positive")
+                btn_pause = ui.button("⏸ Pause", props="color=warning")
+                btn_reset = ui.button("↺ Reset", props="color=negative")
 
-                    def render_freefall():
-                        h = ff_h.value or 0
-                        g = ff_g.value or 0
+        metrics_label = ui.label("Ready to simulate.").classes("text-purple-400 font-semibold mb-2 text-sm")
+        canvas_id = "pendCanvas"
+        ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
 
-                        if h <= 0 or g <= 0:
-                            ff_err.text = "⚠️ Invalid Input! Height h and Gravity g must be positive values."
-                            ff_err.classes(remove="hidden")
-                            ff_res.text = ""
-                            return
-                        else:
-                            ff_err.classes(add="hidden")
+        js_script = f"""
+        (function() {{
+            const canvas = document.getElementById('{canvas_id}');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let animId = null, running = false, angle = 0, angleVel = 0, angleAccel = 0;
 
-                        t_fall = math.sqrt((2 * h) / g)
-                        v_final = g * t_fall
-                        ff_res.text = f"Fall Duration: {t_fall:.2f} seconds | Final Velocity at Impact: {v_final:.2f} m/s"
+            window.runPend = function(L, initAngle, g, showV, showF) {{
+                cancelAnimationFrame(animId);
+                running = true;
+                angle = initAngle * Math.PI / 180;
+                angleVel = 0;
+                const dt = 0.03;
 
-                        svg_code = f"""
-                        <svg width="100%" height="100%" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
-                            <line x1="50" y1="240" x2="450" y2="240" stroke="#f59e0b" stroke-width="4"/>
-                            <line x1="150" y1="40" x2="150" y2="240" stroke="#475569" stroke-width="2" stroke-dasharray="4,4"/>
-                            <circle cx="150" cy="50" r="14" fill="#fbbf24"/>
-                            <circle cx="150" cy="226" r="14" fill="#ef4444" opacity="0.6"/>
-                            <text x="180" y="140" fill="#fcd34d" font-size="14">Height h = {h} m</text>
-                            <text x="180" y="165" fill="#94a3b8" font-size="13">Impact v = {v_final:.1f} m/s</text>
-                        </svg>
-                        """
-                        ff_canvas.content = svg_code
+                function draw() {{
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    ui.button("▶ Run Simulation", icon="play_arrow", on_click=render_freefall).props("color=warning").classes("mt-2 mb-4")
-                    render_freefall()
+                    const pivotX = canvas.width / 2;
+                    const pivotY = 40;
+                    const armLen = 200;
+
+                    angleAccel = (-1 * g / L) * Math.sin(angle);
+                    angleVel += angleAccel * dt;
+                    angle += angleVel * dt;
+
+                    const bobX = pivotX + armLen * Math.sin(angle);
+                    const bobY = pivotY + armLen * Math.cos(angle);
+
+                    // Support Roof
+                    ctx.beginPath();
+                    ctx.moveTo(pivotX - 50, pivotY);
+                    ctx.lineTo(pivotX + 50, pivotY);
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    // String
+                    ctx.beginPath();
+                    ctx.moveTo(pivotX, pivotY);
+                    ctx.lineTo(bobX, bobY);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Bob
+                    ctx.beginPath();
+                    ctx.arc(bobX, bobY, 18, 0, Math.PI * 2);
+                    ctx.fillStyle = '#a855f7';
+                    ctx.fill();
+
+                    // Vectors
+                    if(showV) {{
+                        const vx = angleVel * Math.cos(angle) * 40;
+                        const vy = -angleVel * Math.sin(angle) * 40;
+                        ctx.beginPath();
+                        ctx.moveTo(bobX, bobY);
+                        ctx.lineTo(bobX + vx, bobY + vy);
+                        ctx.strokeStyle = '#22c55e';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }}
+
+                    if(showF) {{
+                        const fx = -Math.sin(angle) * 30;
+                        ctx.beginPath();
+                        ctx.moveTo(bobX, bobY);
+                        ctx.lineTo(bobX + fx, bobY);
+                        ctx.strokeStyle = '#ec4899';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }}
+
+                    if(running) animId = requestAnimationFrame(draw);
+                }}
+                draw();
+            }};
+
+            window.pausePend = function() {{ running = false; }};
+            window.resetPend = function() {{ running = false; ctx.clearRect(0, 0, canvas.width, canvas.height); }};
+        }})();
+        """
+        ui.run_javascript(js_script)
+
+        def start_pend():
+            L = l_in.value or 0
+            ang = a_in.value or 0
+            g = g_in.value or 0
+
+            if L <= 0 or g <= 0 or ang <= 0:
+                err_banner.text = "⚠️ Input Error: Length L, Angle θ, and Gravity g must be positive numbers!"
+                err_banner.classes(remove="hidden")
+                return
+            else:
+                err_banner.classes(add="hidden")
+
+            period = 2 * math.pi * math.sqrt(L / g)
+            metrics_label.text = f"Oscillation Period T: {period:.3f} seconds | Frequency f: {(1/period):.3f} Hz"
+            ui.run_javascript(f"window.runPend({L}, {ang}, {g}, {str(chk_v.value).lower()}, {str(chk_f.value).lower()});")
+
+        btn_play.on("click", start_pend)
+        btn_pause.on("click", lambda: ui.run_javascript("window.pausePend();"))
+        btn_reset.on("click", lambda: ui.run_javascript("window.resetPend();"))
+
+
+# --- 3. SPRING-MASS SIMULATION RUNNER ---
+def run_spring_simulation():
+    with content:
+        with ui.row().classes("items-center justify-between w-full mb-4"):
+            page_title("Spring-Mass Harmonic 2D Simulation", "Simulate Hooke's Law oscillations.")
+            ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
+
+        err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
+
+        with ui.card().classes("glass-card w-full p-5 mb-4"):
+            with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
+                m_in = ui.number(label="Mass m (kg)", value=2.0, min=0.1, max=50).props("outlined")
+                k_in = ui.number(label="Spring Constant k (N/m)", value=40.0, min=1, max=200).props("outlined")
+
+            with ui.row().classes("items-center gap-3 mt-4"):
+                btn_play = ui.button("▶ Start", props="color=positive")
+                btn_pause = ui.button("⏸ Pause", props="color=warning")
+                btn_reset = ui.button("↺ Reset", props="color=negative")
+
+        metrics_label = ui.label("Ready to simulate.").classes("text-emerald-400 font-semibold mb-2 text-sm")
+        canvas_id = "springCanvas"
+        ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
+
+        js_script = f"""
+        (function() {{
+            const canvas = document.getElementById('{canvas_id}');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let animId = null, running = false;
+
+            window.runSpring = function(m, k) {{
+                cancelAnimationFrame(animId);
+                running = true;
+                let x = 80;
+                let v = 0;
+                const dt = 0.03;
+
+                function draw() {{
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const wallX = 40;
+                    const centerY = canvas.height / 2;
+
+                    const a = (-k * x) / m;
+                    v += a * dt;
+                    x += v * dt;
+
+                    const boxX = wallX + 180 + x;
+
+                    // Wall
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(20, centerY - 60, 20, 120);
+
+                    // Spring
+                    ctx.beginPath();
+                    ctx.moveTo(wallX, centerY);
+                    const coils = 12;
+                    const step = (boxX - wallX) / coils;
+                    for(let i = 0; i < coils; i++) {{
+                        ctx.lineTo(wallX + step * i + step/2, centerY + (i % 2 === 0 ? -20 : 20));
+                    }}
+                    ctx.lineTo(boxX, centerY);
+                    ctx.strokeStyle = '#10b981';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Mass Box
+                    ctx.fillStyle = '#059669';
+                    ctx.fillRect(boxX, centerY - 35, 70, 70);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(m + 'kg', boxX + 20, centerY + 5);
+
+                    if(running) animId = requestAnimationFrame(draw);
+                }}
+                draw();
+            }};
+
+            window.pauseSpring = function() {{ running = false; }};
+            window.resetSpring = function() {{ running = false; ctx.clearRect(0, 0, canvas.width, canvas.height); }};
+        }})();
+        """
+        ui.run_javascript(js_script)
+
+        def start_spring():
+            m = m_in.value or 0
+            k = k_in.value or 0
+
+            if m <= 0 or k <= 0:
+                err_banner.text = "⚠️ Input Error: Mass m and Spring Constant k must be positive numbers!"
+                err_banner.classes(remove="hidden")
+                return
+            else:
+                err_banner.classes(add="hidden")
+
+            omega = math.sqrt(k / m)
+            metrics_label.text = f"Angular Frequency ω: {omega:.2f} rad/s | Period T: {(2 * math.pi / omega):.3f} s"
+            ui.run_javascript(f"window.runSpring({m}, {k});")
+
+        btn_play.on("click", start_spring)
+        btn_pause.on("click", lambda: ui.run_javascript("window.pauseSpring();"))
+        btn_reset.on("click", lambda: ui.run_javascript("window.resetSpring();"))
+
+
+# --- 4. GRAVITY SIMULATION RUNNER ---
+def run_gravity_simulation():
+    with content:
+        with ui.row().classes("items-center justify-between w-full mb-4"):
+            page_title("Gravity & Free Fall 2D Simulation", "Observe vertical acceleration and impact metrics.")
+            ui.button("Back to List", icon="arrow_back", on_click=lambda: navigate_to(show_simulations)).props("flat color=primary")
+
+        err_banner = ui.label().classes("text-red-400 font-bold text-sm mb-3 hidden")
+
+        with ui.card().classes("glass-card w-full p-5 mb-4"):
+            with ui.grid(columns=1).classes("w-full md:grid-cols-2 gap-4"):
+                h_in = ui.number(label="Drop Height h (m)", value=50.0, min=5, max=200).props("outlined")
+                g_in = ui.number(label="Gravity g (m/s²)", value=9.81, min=0.1, max=30).props("outlined")
+
+            with ui.row().classes("items-center gap-3 mt-4"):
+                btn_play = ui.button("▶ Start Drop", props="color=positive")
+                btn_reset = ui.button("↺ Reset", props="color=negative")
+
+        metrics_label = ui.label("Ready to drop.").classes("text-amber-400 font-semibold mb-2 text-sm")
+        canvas_id = "gravCanvas"
+        ui.html(f'<canvas id="{canvas_id}" class="sim-canvas"></canvas>').classes("w-full")
+
+        js_script = f"""
+        (function() {{
+            const canvas = document.getElementById('{canvas_id}');
+            if(!canvas) return;
+            const ctx = canvas.getContext('2d');
+            let animId = null;
+
+            window.runGrav = function(h, g) {{
+                cancelAnimationFrame(animId);
+                let t = 0;
+                const dt = 0.03;
+                const groundY = canvas.height - 30;
+
+                function draw() {{
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    const yMeters = 0.5 * g * t * t;
+                    const scale = (canvas.height - 80) / h;
+                    const ballY = 40 + yMeters * scale;
+
+                    // Floor
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(40, groundY, canvas.width - 80, 6);
+
+                    if (ballY < groundY - 15) {{
+                        ctx.beginPath();
+                        ctx.arc(canvas.width / 2, ballY, 15, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.fill();
+
+                        // Velocity Vector
+                        ctx.beginPath();
+                        ctx.moveTo(canvas.width / 2, ballY);
+                        ctx.lineTo(canvas.width / 2, ballY + (g * t) * 2);
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+
+                        t += dt;
+                        animId = requestAnimationFrame(draw);
+                    }} else {{
+                        ctx.beginPath();
+                        ctx.arc(canvas.width / 2, groundY - 15, 15, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fill();
+                    }}
+                }}
+                draw();
+            }};
+
+            window.resetGrav = function() {{ ctx.clearRect(0, 0, canvas.width, canvas.height); }};
+        }})();
+        """
+        ui.run_javascript(js_script)
+
+        def start_grav():
+            h = h_in.value or 0
+            g = g_in.value or 0
+
+            if h <= 0 or g <= 0:
+                err_banner.text = "⚠️ Input Error: Height h and Gravity g must be positive numbers!"
+                err_banner.classes(remove="hidden")
+                return
+            else:
+                err_banner.classes(add="hidden")
+
+            t_fall = math.sqrt((2 * h) / g)
+            v_impact = g * t_fall
+            metrics_label.text = f"Fall Time: {t_fall:.2f}s | Final Impact Velocity: {v_impact:.2f} m/s"
+            ui.run_javascript(f"window.runGrav({h}, {g});")
+
+        btn_play.on("click", start_grav)
+        btn_reset.on("click", lambda: ui.run_javascript("window.resetGrav();"))
 
 
 # =========================================================
