@@ -2,6 +2,10 @@ import os
 import math
 from datetime import datetime
 from nicegui import app, ui
+from dotenv import load_dotenv
+
+#Load environment variables from the .env file
+load_dotenv()
 
 # Optional: Set your Gemini API key via environment variable: GEMINI_API_KEY
 # If not present, the system seamlessly falls back to the embedded offline physics engine.
@@ -1303,7 +1307,7 @@ with ui.header().classes("topbar items-center px-3 md:px-5"):
 
     with ui.column().classes("items-end gap-0 py-1"):
         ui.badge("● SYSTEM READY").classes("system-ready text-xs px-2 py-0.5 rounded-full font-medium")
-        ui.label("MADE BY ISHAN SHARMA").classes("text-[10px] text-muted font-bold tracking-wider mt-1 uppercase")
+        ui.label("MADE BY ISHAN SHARMA").classes("text-muted font-bold tracking-wider mt-1 uppercase").style("font-size: 10px;")
 
 navigate_to(show_home, addToHistory=False)
 
